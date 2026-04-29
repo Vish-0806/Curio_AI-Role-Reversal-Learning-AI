@@ -6,9 +6,9 @@ and the universal ResponseEnvelope used across all endpoints.
 """
 
 from datetime import datetime
-from typing import Any, Dict, Generic, List, Literal, Optional, TypeVar
+from typing import Any, Dict, Generic, List, Literal, Optional, TypeVar, Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.utils.helpers import utc_now
 
@@ -46,16 +46,60 @@ class ResponseEnvelope(BaseModel, Generic[T]):
 
 class ChatRequest(BaseModel):
     """Payload for POST /chat — user sends a teaching message."""
-    session_id: str = Field(description="Active session identifier")
-    user_message: str = Field(description="The user's explanation / teaching text")
-    context: Optional[str] = Field(
+    session_id: str = Field(
+        description="Active session identifier",
+        examples=["507f1f77bcf86cd799439011"]
+    )
+    user_message: str = Field(
+        description="The user's explanation / teaching text",
+        examples=["V equals I times R, which means voltage equals current multiplied by resistance"]
+    )
+    context: Optional[Union[str, Dict[str, Any]]] = Field(
         default=None,
-        description="Optional concept name or topic context",
+        description="Optional concept name or topic context (accepts string or dict)",
+        examples=[
+            {"key": "value", "topic": "Ohm's Law"},
+            "V = IR"
+        ]
     )
     mode: Literal["teach", "quiz", "review"] = Field(
         default="teach",
         description="Interaction mode",
+        examples=["teach", "quiz", "review"]
     )
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "session_id": "507f1f77bcf86cd799439011",
+                    "user_message": "Explain Ohm's Law - voltage equals current times resistance",
+                    "context": {"topic": "electrical_engineering", "level": "beginner"},
+                    "mode": "teach"
+                },
+                {
+                    "session_id": "507f1f77bcf86cd799439012",
+                    "user_message": "What is photosynthesis?",
+                    "context": "photosynthesis",
+                    "mode": "teach"
+                },
+                {
+                    "session_id": "507f1f77bcf86cd799439013",
+                    "user_message": "Explain the water cycle",
+                    "context": None,
+                    "mode": "quiz"
+                }
+            ]
+        }
+    }
+
+    @field_validator("context", mode="before")
+    @classmethod
+    def convert_context_to_dict(cls, v):
+        """Convert string context to dict format, preserve dict inputs."""
+        if isinstance(v, str):
+            return {"value": v}
+        return v
 
 
 class AIFlags(BaseModel):
