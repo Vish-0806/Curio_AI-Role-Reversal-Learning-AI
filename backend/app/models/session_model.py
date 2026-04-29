@@ -71,14 +71,24 @@ class ConversationTurn(BaseModel):
 
 class SessionState(BaseModel):
     """
-    Full state of a teaching session.
+    Full state of a teaching session with cognitive tracking.
 
     Designed for future persistence: version field for schema migrations,
     extras dict for ad-hoc data without schema changes.
+    
+    COGNITIVE SYSTEM FIELDS:
+    - current_mode: AI behavioral mode (student, teacher, rescue, evaluator)
+    - difficulty_level: Question difficulty (1=beginner, 2=intermediate, 3=expert)
+    - user_understanding_score: Rolling understanding metric (0-100)
+    - confidence_score: System confidence in user mastery (0-100)
+    - question_count: Total questions asked in session
+    - mode_switch_history: Timeline of mode transitions with reasons
+    - user_response_quality_scores: Per-response quality ratings for progression
+    - user_topic_understanding: System's summary of user's topic understanding
     """
     # ── Identity ─────────────────────────────────────────────────
     session_id: str = Field(default_factory=lambda: generate_id("sess"))
-    version: int = Field(default=1, description="Schema version for migrations")
+    version: int = Field(default=2, description="Schema version for migrations")
 
     # ── Timestamps ───────────────────────────────────────────────
     created_at: datetime = Field(default_factory=utc_now)
@@ -90,6 +100,50 @@ class SessionState(BaseModel):
 
     # ── Conversation ─────────────────────────────────────────────
     conversation: List[ConversationTurn] = Field(default_factory=list)
+
+    # ── COGNITIVE STATE TRACKING ─────────────────────────────────
+    # AI Mode & Difficulty Control
+    current_mode: Literal["student", "teacher", "rescue", "evaluator"] = Field(
+        default="student",
+        description="Current AI behavioral mode"
+    )
+    difficulty_level: Literal[1, 2, 3] = Field(
+        default=1,
+        description="Question difficulty: 1=beginner, 2=intermediate, 3=expert"
+    )
+    
+    # Understanding & Confidence Metrics
+    user_understanding_score: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=100.0,
+        description="Rolling metric of user mastery (0-100)"
+    )
+    confidence_score: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=100.0,
+        description="System confidence in user understanding (0-100)"
+    )
+    
+    # Question & Response Tracking
+    question_count: int = Field(default=0, description="Total questions asked")
+    user_response_quality_scores: List[float] = Field(
+        default_factory=list,
+        description="Quality scores for each user response (0-1 scale)"
+    )
+    
+    # Mode History
+    mode_switch_history: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description="Timeline of mode transitions: {timestamp, old_mode, new_mode, reason}"
+    )
+    
+    # Understanding Summary
+    user_topic_understanding: Optional[str] = Field(
+        default=None,
+        description="AI's learned summary of what user understands about topic"
+    )
 
     # ── Evaluation ───────────────────────────────────────────────
     last_evaluation: Optional[Dict[str, Any]] = Field(

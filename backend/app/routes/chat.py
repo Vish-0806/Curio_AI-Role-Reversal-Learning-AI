@@ -2,17 +2,17 @@
 Curio AI — Chat Route.
 
 POST /chat — Handle a teaching conversation turn.
-Now integrated with custom AI Engine (student behavior system)
+Integrated with adaptive cognitive controller for role-reversal learning.
 """
 
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Request
 
-from app.models.chat_model import ChatRequest, ChatResponse, ResponseEnvelope, ErrorDetail
+from app.models.chat_model import ChatRequest, ChatResponse, ResponseEnvelope, ErrorDetail, AIFlags
 from app.services.input_processor import process_input
 from app.services.session_manager import session_manager
-from app.services.ai_service import get_ai_response   # ✅ NEW IMPORT
+from app.services.ai_service import get_ai_response   # Adaptive cognitive controller
 from app.utils.helpers import generate_id
 from app.utils.logger import get_logger
 
@@ -110,41 +110,49 @@ async def chat(body: ChatRequest, request: Request):
             },
         )
 
-        # 5. Call AI Engine (your friend's system)
+        # 5. Generate adaptive AI response using the cognitive controller
         ai_output = get_ai_response(
-            processed.clean_text,
-            session.conversation
+            session,
+            processed.clean_text
         )
         logger.debug(
             "AI response generated",
             extra={
                 "request_id": request_id,
                 "session_id": body.session_id,
-                "ai_message_length": len(ai_output["ai_message"]),
-                "ai_intent": ai_output["ai_intent"],
-                "followups_count": len(ai_output.get("followups", [])),
+                "mode": ai_output.get("mode"),
+                "difficulty": ai_output.get("difficulty_level"),
+                "ai_message_length": len(ai_output.get("ai_message", "")),
             },
         )
 
         # 6. Convert AI output → ChatResponse
         chat_response = ChatResponse(
             session_id=body.session_id,
-            ai_message=ai_output["ai_message"],
-            ai_intent=ai_output["ai_intent"],
-            followups=ai_output.get("followups", []),
-            flags=ai_output.get("flags", {}),
+            ai_message=ai_output.get("ai_message", ""),
+            ai_intent=ai_output.get("mode", "student"),  # Map mode to intent
+            followups=[],
+            flags=AIFlags(),
             updated_state_summary=None,
+            # NEW COGNITIVE FIELDS
+            mode=ai_output.get("mode", "student"),
+            difficulty_level=ai_output.get("difficulty_level", 1),
+            confidence_score=ai_output.get("confidence_score", 0.0),
+            progress_state=ai_output.get("progress_state"),
+            termination_offer=ai_output.get("termination_offer"),
         )
 
-        # 7. Store AI response
-        session_manager.append_turn(
+        # 7. Store AI response with cognitive annotations
+        session = session_manager.append_turn(
             session_id=body.session_id,
             role="ai",
             text=chat_response.ai_message,
             annotations={
-                "ai_intent": chat_response.ai_intent,
-                "flags": chat_response.flags,
-                "context": normalized_context,  # Store normalized context with turn
+                "ai_intent": ai_output.get("mode"),
+                "mode": ai_output.get("mode"),
+                "difficulty_level": ai_output.get("difficulty_level"),
+                "confidence_score": ai_output.get("confidence_score"),
+                "context": normalized_context,
             },
         )
         logger.debug(

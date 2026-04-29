@@ -1,16 +1,18 @@
 """
-Curio AI — Report Generator Service.
+Curio AI — Report Generator Service
 
-Generates a LearningReport from session state + evaluation results.
-Currently deterministic; designed for future AI-generated reports.
+Generates comprehensive learning reports from session state and evaluation.
 
-Extension points:
-- AI-generated personalized recommendations
-- Spaced repetition scheduling
-- Cross-session trend analysis
+Report includes:
+- Detailed gap analysis
+- Mastery assessment
+- Personalized recommendations
+- Learning roadmap
+- Progress tracking
 """
 
-from typing import List
+from typing import List, Dict, Any
+from datetime import datetime
 
 from app.models.evaluation_model import EvaluationResult
 from app.models.report_model import GapItem, LearningReport
@@ -21,161 +23,303 @@ from app.utils.logger import get_logger
 logger = get_logger(__name__)
 
 
-def generate_report(session_state: SessionState, evaluation: EvaluationResult) -> LearningReport:
+def generate_report(
+    session_state: SessionState,
+    evaluation: Dict[str, Any],
+) -> Dict[str, Any]:
     """
-    Generate a learning report from session state and evaluation.
+    Generate a comprehensive learning report from session state and evaluation.
 
     Args:
-        session_state: Session with conversation history
-        evaluation: Completed evaluation result
+        session_state: Session with conversation history and metadata
+        evaluation: Comprehensive evaluation from SessionEvaluator
 
     Returns:
-        LearningReport with strengths, gaps, drills, and next steps
+        Detailed report dictionary with all learning insights
     """
+    
     topic = session_state.topic or "the discussed topic"
     user_turns = [t for t in session_state.conversation if t.role == "user"]
-
-    # ── Summary ──────────────────────────────────────────────────
-    summary = _build_summary(topic, evaluation, len(user_turns))
-
-    # ── Strengths ────────────────────────────────────────────────
-    strengths = _identify_strengths(evaluation)
-
-    # ── Gaps ─────────────────────────────────────────────────────
-    gaps = _identify_gaps(topic, evaluation)
-
-    # ── Suggested Drills ─────────────────────────────────────────
-    drills = _suggest_drills(topic, evaluation)
-
-    # ── Next Steps ───────────────────────────────────────────────
-    next_steps = _suggest_next_steps(topic, evaluation, gaps)
-
-    logger.info("Report generated", extra={
+    
+    report = {
+        "report_id": f"report_{session_state.session_id}_{int(datetime.now().timestamp())}",
         "session_id": session_state.session_id,
-        "strengths": len(strengths),
-        "gaps": len(gaps),
-    })
-
-    return LearningReport(
-        summary=summary,
-        strengths=strengths,
-        gaps=gaps,
-        suggested_drills=drills,
-        next_steps=next_steps,
-    )
-
-
-def _build_summary(topic: str, evaluation: EvaluationResult, turn_count: int) -> str:
-    score = evaluation.overall_score
-    if score >= 0.8:
-        quality = "excellent"
-    elif score >= 0.6:
-        quality = "good"
-    elif score >= 0.4:
-        quality = "developing"
-    else:
-        quality = "needs improvement"
-
-    return (
-        f"Teaching session on '{topic}' ({turn_count} turns): {quality} overall "
-        f"(score: {score:.0%}). "
-        f"{evaluation.rationale}"
-    )
-
-
-def _identify_strengths(evaluation: EvaluationResult) -> List[str]:
-    strengths = []
-    for dim in evaluation.scores:
-        if dim.score >= 0.7:
-            label = dim.dimension.replace("_", " ").title()
-            strengths.append(f"{label}: {dim.rationale}")
-    if not strengths:
-        strengths.append("Keep practicing! Strengths will emerge with more teaching.")
-    return strengths
-
-
-def _identify_gaps(topic: str, evaluation: EvaluationResult) -> List[GapItem]:
-    gaps = []
-    for dim in evaluation.scores:
-        if dim.score < 0.5:
-            gap = _dimension_to_gap(topic, dim.dimension, dim.score, dim.rationale)
-            gaps.append(gap)
-
-    for misc in evaluation.misconceptions:
-        gaps.append(GapItem(
-            concept=f"Potential misconception in {topic}",
-            symptom=misc.description,
-            why_it_matters="Misconceptions can compound and lead to deeper misunderstandings",
-            suggested_exercise=f"Review authoritative sources on {topic} and verify your claims",
-        ))
-
-    return gaps
-
-
-def _dimension_to_gap(topic: str, dimension: str, score: float, rationale: str) -> GapItem:
-    gap_map = {
-        "clarity": GapItem(
-            concept=f"Clarity of explanation for {topic}",
-            symptom=f"Low clarity score ({score:.0%}): {rationale}",
-            why_it_matters="Unclear explanations indicate the teacher may not fully grasp the concept",
-            suggested_exercise="Rewrite your explanation in 3 sentences for a 10-year-old",
+        "topic": topic,
+        "generated_at": datetime.now().isoformat(),
+        
+        # ── Core Metrics ──────────────────────────────────────
+        "understanding_score": evaluation.get("overall_understanding_score", 0.0),
+        "mastery_level": evaluation.get("mastery_level", "Beginner"),
+        "confidence_level": evaluation.get("confidence_level", 0.0),
+        "difficulty_reached": evaluation.get("final_difficulty_reached", 1),
+        "question_count": evaluation.get("question_count", 0),
+        "avg_response_quality": evaluation.get("avg_response_quality", 0.0),
+        
+        # ── Learning Profile ──────────────────────────────────
+        "summary": _build_comprehensive_summary(topic, evaluation, len(user_turns)),
+        "strengths": evaluation.get("strengths", []),
+        "gaps": evaluation.get("gaps", []),
+        "misconceptions": evaluation.get("misconceptions", []),
+        
+        # ── Structured Gaps Report ────────────────────────────
+        "gap_analysis": _build_gap_analysis_report(evaluation, topic),
+        
+        # ── Recommendations ───────────────────────────────────
+        "personalized_recommendations": evaluation.get("recommendations", []),
+        "learning_roadmap": _build_learning_roadmap(
+            evaluation,
+            topic,
+            session_state.difficulty_level
         ),
-        "correctness_proxy": GapItem(
-            concept=f"Confidence and consistency in {topic}",
-            symptom=f"Low consistency score ({score:.0%}): {rationale}",
-            why_it_matters="Contradictions and hedging suggest uncertain understanding",
-            suggested_exercise="List 3 facts you're certain about and verify them against a textbook",
-        ),
-        "examples": GapItem(
-            concept=f"Use of examples for {topic}",
-            symptom=f"Low examples score ({score:.0%}): {rationale}",
-            why_it_matters="Examples are crucial for demonstrating practical understanding",
-            suggested_exercise="Come up with 3 real-world examples that illustrate the concept",
-        ),
-        "depth": GapItem(
-            concept=f"Depth of knowledge in {topic}",
-            symptom=f"Low depth score ({score:.0%}): {rationale}",
-            why_it_matters="Shallow explanations suggest surface-level understanding",
-            suggested_exercise="Explain WHY the concept works, not just WHAT it is",
-        ),
-        "structure": GapItem(
-            concept=f"Organization of {topic} explanation",
-            symptom=f"Low structure score ({score:.0%}): {rationale}",
-            why_it_matters="Well-structured explanations reflect organized thinking",
-            suggested_exercise="Create an outline before explaining: intro, key points, examples, summary",
-        ),
+        
+        # ── Session Statistics ─────────────────────────────────
+        "session_statistics": {
+            "total_turns": len(session_state.conversation),
+            "user_turns": len(user_turns),
+            "session_duration_minutes": 0,  # Can be calculated if timestamps available
+            "mode_switches": len(session_state.mode_switch_history),
+            "final_mode": session_state.current_mode,
+        },
+        
+        # ── AI Analysis ───────────────────────────────────────
+        "detailed_analysis": evaluation.get("ai_analysis", ""),
     }
-    return gap_map.get(dimension, GapItem(
-        concept=topic,
-        symptom=f"Low score in {dimension}",
-        why_it_matters="This area needs improvement",
-        suggested_exercise="Review and practice this area",
-    ))
+    
+    logger.info(
+        "Report generated",
+        extra={
+            "session_id": session_state.session_id,
+            "understanding_score": report["understanding_score"],
+            "mastery_level": report["mastery_level"],
+            "gaps_count": len(report["gaps"]),
+        }
+    )
+    
+    return report
 
 
-def _suggest_drills(topic: str, evaluation: EvaluationResult) -> List[str]:
-    drills = []
-    if evaluation.overall_score < 0.6:
-        drills.append(f"Feynman Technique: Explain {topic} from scratch without notes")
-    for dim in evaluation.scores:
-        if dim.score < 0.5 and dim.dimension == "examples":
-            drills.append(f"Example Bank: Write 5 examples for each sub-concept of {topic}")
-        if dim.score < 0.5 and dim.dimension == "depth":
-            drills.append(f"Why Chain: Ask 'why?' 5 times to dig deeper into {topic}")
-    if not drills:
-        drills.append(f"Challenge Mode: Try teaching {topic} to someone unfamiliar with it")
-    return drills
-
-
-def _suggest_next_steps(topic: str, evaluation: EvaluationResult, gaps: List[GapItem]) -> List[str]:
-    steps = []
-    if gaps:
-        steps.append(f"Address the {len(gaps)} identified gap(s) using the suggested exercises")
-    if evaluation.overall_score >= 0.7:
-        steps.append(f"Try teaching a more advanced aspect of {topic}")
-        steps.append("Move to quiz mode to test your knowledge under pressure")
+def _build_comprehensive_summary(
+    topic: str,
+    evaluation: Dict[str, Any],
+    turn_count: int,
+) -> str:
+    """Build comprehensive session summary."""
+    
+    score = evaluation.get("overall_understanding_score", 0.0)
+    mastery = evaluation.get("mastery_level", "Beginner")
+    
+    if mastery == "Mastery":
+        quality_desc = "excellent mastery"
+        emoji = "✓"
+    elif mastery == "Proficient":
+        quality_desc = "solid proficiency"
+        emoji = "○"
+    elif mastery == "Developing":
+        quality_desc = "developing understanding"
+        emoji = "◐"
     else:
-        steps.append(f"Review foundational material on {topic}")
-        steps.append("Re-teach the topic focusing on areas with low scores")
-    steps.append("Schedule a follow-up session in 2-3 days (spaced repetition)")
-    return steps
+        quality_desc = "foundational understanding"
+        emoji = "◑"
+    
+    gaps = evaluation.get("gaps", [])
+    misconceptions = evaluation.get("misconceptions", [])
+    
+    summary = (
+        f"{emoji} Teaching session on '{topic}' ({turn_count} teaching turns)\n"
+        f"Overall understanding: {quality_desc} (Score: {score:.0f}%)\n"
+        f"Mastery Level: {mastery}\n"
+    )
+    
+    if gaps:
+        summary += f"Areas for improvement: {len(gaps)} identified\n"
+    
+    if misconceptions:
+        summary += f"⚠ Misconceptions detected: {len(misconceptions)} - Review recommended\n"
+    
+    summary += f"\n{evaluation.get('ai_analysis', 'Session completed.').split(chr(10))[0]}"
+    
+    return summary
+
+
+def _build_gap_analysis_report(evaluation: Dict[str, Any], topic: str) -> Dict[str, Any]:
+    """Build structured gap analysis report."""
+    
+    gaps = evaluation.get("gaps", [])
+    
+    gap_report = {
+        "total_gaps_identified": len(gaps),
+        "gaps_by_priority": {
+            "high": [],
+            "medium": [],
+            "low": [],
+        },
+        "detailed_gaps": [],
+    }
+    
+    for gap in gaps:
+        priority = gap.get("priority", "medium")
+        
+        # Categorize by priority
+        if priority in gap_report["gaps_by_priority"]:
+            gap_report["gaps_by_priority"][priority].append(gap.get("area", "Unknown"))
+        
+        # Add detailed gap item
+        gap_item = {
+            "area": gap.get("area", "Unknown"),
+            "issue": gap.get("issue", ""),
+            "priority": priority,
+            "why_it_matters": _explain_gap_importance(gap.get("area", "")),
+            "suggested_focus": _suggest_gap_remediation(gap.get("area", ""), topic),
+        }
+        gap_report["detailed_gaps"].append(gap_item)
+    
+    return gap_report
+
+
+def _explain_gap_importance(area: str) -> str:
+    """Explain why a particular gap matters."""
+    
+    importance_map = {
+        "Conceptual clarity": "Understanding the core concepts is fundamental to mastery and prevents cascading confusion",
+        "Edge cases and special scenarios": "Missing edge case handling can lead to failures in real applications and incomplete understanding",
+        "Practical examples": "Concrete examples demonstrate practical understanding and help retain knowledge",
+        "Critical thinking": "The ability to question assumptions is essential for deep, lasting learning",
+        "Conceptual depth": "Depth separates surface-level knowledge from true mastery",
+    }
+    
+    # Return mapped explanation or generate generic one
+    for key, explanation in importance_map.items():
+        if key.lower() in area.lower():
+            return explanation
+    
+    return f"Strengthening '{area}' is essential for complete understanding of this topic"
+
+
+def _suggest_gap_remediation(area: str, topic: str) -> str:
+    """Suggest how to address a specific gap."""
+    
+    remediation_map = {
+        "Conceptual clarity": f"Create a written summary of {topic} in your own words, then compare with authoritative sources",
+        "Edge cases": f"Identify 5 edge cases or boundary conditions in {topic} and explain how they're handled",
+        "Practical examples": f"Write 3 real-world examples for {topic}, focusing on practical application",
+        "Critical thinking": f"For each claim about {topic}, write 'Why is this true?' and 'What could make this false?'",
+        "Conceptual depth": f"Use the Feynman Technique: explain {topic} as if teaching it to someone new",
+    }
+    
+    for key, suggestion in remediation_map.items():
+        if key.lower() in area.lower():
+            return suggestion
+    
+    return f"Review and practice {area} through targeted exercises and re-teaching"
+
+
+def _build_learning_roadmap(
+    evaluation: Dict[str, Any],
+    topic: str,
+    current_difficulty: int,
+) -> List[Dict[str, Any]]:
+    """Build personalized learning roadmap."""
+    
+    mastery = evaluation.get("mastery_level", "Beginner")
+    score = evaluation.get("overall_understanding_score", 0.0)
+    gaps = evaluation.get("gaps", [])
+    misconceptions = evaluation.get("misconceptions", [])
+    
+    roadmap = []
+    
+    # Step 1: Address critical issues
+    if misconceptions:
+        roadmap.append({
+            "step": 1,
+            "priority": "CRITICAL",
+            "action": "Address Misconceptions",
+            "description": f"Review and correct {len(misconceptions)} identified misconception(s)",
+            "timeline": "Next session or immediately",
+            "resources": [
+                "Review authoritative sources on the topic",
+                "Test your revised understanding",
+                "Get feedback on corrected concepts"
+            ],
+        })
+    
+    # Step 2: Fill knowledge gaps
+    if gaps:
+        roadmap.append({
+            "step": 1 if misconceptions else 1,
+            "priority": "HIGH",
+            "action": "Strengthen Knowledge Gaps",
+            "description": f"Focus on {min(3, len(gaps))} high-priority gaps",
+            "timeline": "This week",
+            "resources": [
+                f"Use targeted exercises for each gap",
+                f"Create concrete examples for {topic}",
+                "Teach someone else to reinforce understanding"
+            ],
+        })
+    
+    # Step 3: Deepen understanding
+    if mastery in ["Developing", "Proficient"]:
+        roadmap.append({
+            "step": 2 if (misconceptions or gaps) else 1,
+            "priority": "MEDIUM",
+            "action": "Deepen Understanding",
+            "description": "Move beyond basics to deeper conceptual understanding",
+            "timeline": "Next 1-2 weeks",
+            "resources": [
+                f"Explore advanced aspects of {topic}",
+                "Connect concepts to related topics",
+                "Work through complex scenarios"
+            ],
+        })
+    
+    # Step 4: Achieve mastery
+    if mastery != "Mastery":
+        roadmap.append({
+            "step": 3 if (misconceptions or gaps) else 2,
+            "priority": "MEDIUM",
+            "action": "Achieve Mastery",
+            "description": "Teach the topic to others and handle adversarial questions",
+            "timeline": "Ongoing practice",
+            "resources": [
+                f"Teach {topic} to peers or community",
+                "Participate in challenging discussions",
+                "Create teaching materials for others"
+            ],
+        })
+    else:
+        roadmap.append({
+            "step": 2,
+            "priority": "OPTIONAL",
+            "action": "Share Knowledge",
+            "description": "Teach others and explore related advanced topics",
+            "timeline": "Ongoing",
+            "resources": [
+                "Create teaching materials",
+                "Mentor others learning this topic",
+                "Explore related advanced concepts"
+            ],
+        })
+    
+    return roadmap
+
+
+def generate_quick_feedback(evaluation: Dict[str, Any]) -> str:
+    """Generate quick feedback summary (for chat display)."""
+    
+    mastery = evaluation.get("mastery_level", "Beginner")
+    score = evaluation.get("overall_understanding_score", 0.0)
+    gaps = evaluation.get("gaps", [])
+    
+    feedback_parts = [
+        f"Mastery Level: {mastery} ({score:.0f}%)"
+    ]
+    
+    if gaps:
+        gap_areas = [g.get("area", "Unknown") for g in gaps[:2]]
+        feedback_parts.append(f"Focus areas: {', '.join(gap_areas)}")
+    
+    strengths = evaluation.get("strengths", [])
+    if strengths:
+        feedback_parts.append(f"Strengths: {strengths[0][:50]}...")
+    
+    return " | ".join(feedback_parts)
