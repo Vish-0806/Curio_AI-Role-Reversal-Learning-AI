@@ -1,0 +1,165 @@
+Step 0 — Lock the backend “contract” (architecture + boundaries)
+Goal: Make the backend modular so you can later swap AI providers, add tools, add new evaluation types, add multi-tenant, etc.
+Prompt
+You are a senior backend engineer. I’m building a FastAPI backend for “Curio” (role-reversal learning: user teaches, AI student challenges, asks questions, makes intentional mistakes, evaluates understanding, produces gap report).
+Here is my target folder structure (already created):
+- app/main.py
+- app/routes/{chat,evaluate,report,session}.py
+- app/services/{session_manager,input_processor,response_formatter,ai_router,evaluation_router,report_generator,prompt_payload_builder}.py
+- app/models/{chat_model,evaluation_model,report_model,session_model}.py
+- app/config/{settings,constants}.py
+- app/utils/{logger,error_handler,helpers}.py
+Design the architecture with these rules:
+1) Routes only do HTTP + validation; business logic goes in services.
+2) AI is behind an interface so we can swap providers later (OpenAI/local/etc).
+3) Session state should support future persistence (in-memory now, DB later).
+4) Every request/response must have clear Pydantic models.
+5) Include error handling strategy + consistent response envelope.
+Output: a concise architecture spec (modules, responsibilities, data flow), and a list of “public service functions” each route will call.
+Step 1 — Generate settings.py + constants.py (future-proof configuration)
+Prompt
+Create app/config/settings.py using Pydantic settings (env-based config). Include:
+- ENV (dev/prod), LOG_LEVEL
+- AI_PROVIDER (string)
+- AI_MODEL (string)
+- API keys placeholders
+- SESSION_TTL_MINUTES
+- CORS_ORIGINS (list)
+- RATE_LIMITS placeholders (even if not implemented yet)
+Provide a get_settings() cached function.
+Also create app/config/constants.py for non-env constants:
+- default system prompts keys
+- max lengths (message length, history length)
+- evaluation rubric names
+Return code for both files.
+Step 2 — Create foundational utils: logging + error handling
+Prompt
+Implement:
+1) app/utils/logger.py: structured logging setup (JSON-like dict logs), request id support (if available), helper get_logger(name).
+2) app/utils/error_handler.py: define custom exceptions (ValidationError, NotFoundError, AIProviderError, SessionExpiredError) and FastAPI exception handlers that return a consistent error response format.
+3) app/utils/helpers.py: common helpers (utc_now(), generate_id(prefix), safe_truncate(text,n), sanitize_text minimal).
+Requirements:
+- Error responses must include: success: false, error: { code, message, details? }, request_id?.
+- Don’t add external dependencies besides FastAPI/Pydantic/stdlib.
+Output code for all three modules.
+Step 3 — Define the core Pydantic models (your API contract)
+3A) Session models
+Prompt
+Create app/models/session_model.py:
+- SessionCreateRequest (user_id optional, topic optional, metadata dict)
+- SessionCreateResponse (session_id, created_at, expires_at)
+- SessionState model: session_id, created_at, expires_at, conversation list, last_evaluation optional, settings overrides optional
+- ConversationTurn model: turn_id, role ("user"|"ai"), text, timestamp, annotations optional
+Keep it flexible for future: add version field to SessionState and support extras dict.
+3B) Chat models
+Prompt
+Create app/models/chat_model.py for /chat:
+- ChatRequest: session_id, user_message, optional context (e.g., “concept name”), optional mode ("teach","quiz","review")
+- ChatResponse: session_id, ai_message, ai_intent (e.g., "question","challenge","hint","mistake"), followups list, updated_state_summary optional
+- Include a ResponseEnvelope model used across endpoints: success, data, error, request_id.
+Return code only.
+3C) Evaluation + report models
+Prompt
+Create:
+- app/models/evaluation_model.py: EvaluationRequest (session_id, optional rubric), EvaluationResult (scores by dimension, misconceptions list, missing_examples list, confidence, rationale short), EvaluationResponse.
+- app/models/report_model.py: ReportRequest (session_id), GapItem model, LearningReport model (summary, strengths, gaps, suggested_drills, next_steps), ReportResponse.
+Ensure models support future rubric versions and add schema_version fields.
+Step 4 — Implement SessionManager service (in-memory now, DB-ready later)
+Prompt
+Implement app/services/session_manager.py:
+- In-memory store (dict) for MVP, but design with an interface so we can swap persistence later.
+- Functions:
+- create_session(create_request) -> SessionState
+- get_session(session_id) -> SessionState (raise NotFoundError/SessionExpiredError)
+- append_turn(session_id, role, text, annotations?) -> updated SessionState
+- update_last_evaluation(session_id, evaluation_result)
+- cleanup_expired_sessions()
+- TTL based on settings.SESSION_TTL_MINUTES
+Add minimal thread-safety notes (Lock) and implement with threading.Lock.
+Return full code.
+Step 5 — Implement input processing + response formatting (keep routes thin)
+Prompt
+Implement:
+1) app/services/input_processor.py: clean user explanation text, enforce max length, basic normalization, return a structured object: {clean_text, warnings}.
+2) app/services/response_formatter.py: build ChatResponse from raw AI output; enforce consistent fields; truncate overly long text safely.
+Must not depend on the AI provider. Include docstrings explaining extension points.
+Step 6 — Build the “prompt payload builder” (this is key for future innovation)
+Prompt
+Implement app/services/prompt_payload_builder.py:
+- Build a provider-agnostic payload from (session_state, user_message, mode).
+- Include:
+- system instructions for “AI student” behavior: ask clarifying questions, challenge logic, request examples, intentionally make mistakes sometimes.
+- conversation history compaction: include last N turns, plus a short summary placeholder (don’t implement summarization yet; just structure it).
+- output schema instructions: require AI to return JSON with keys {ai_message, ai_intent, followups[], flags{needs_example, detected_gap}}.
+- Make prompts configurable via constants.
+Return code only.
+Step 7 — AI router (provider abstraction)
+Prompt
+Implement app/services/ai_router.py with a clean interface:
+- AIClient protocol/interface with generate(payload) -> dict
+- A simple MockAIClient for MVP that returns deterministic outputs (so backend works without real keys)
+- A get_ai_client(settings) factory based on settings.AI_PROVIDER
+- AIRouter service that calls the client and normalizes provider output into the expected dict.
+Handle errors with AIProviderError. No external libs.
+(Later you can add a real OpenAI client, etc., without touching routes.)
+Step 8 — Evaluation router + report generator (separate concerns)
+8A) Evaluation router
+Prompt
+Implement app/services/evaluation_router.py:
+- Takes session_state and produces EvaluationResult.
+- For MVP, implement a rule-based evaluator (heuristics) using:
+- presence of examples (“for example”, “e.g.”)
+- detection of vagueness (too short, too many “stuff/thing”)
+- inconsistency markers (“but also”, contradictions heuristic)
+- Return scores across dimensions: clarity, correctness_proxy, examples, depth, structure.
+Keep interface stable so we can replace with AI-based evaluator later.
+8B) Report generator
+Prompt
+Implement app/services/report_generator.py:
+- Input: session_state + EvaluationResult
+- Output: LearningReport with strengths, gaps, suggested drills, next steps.
+- Make GapItem include: concept, symptom, why_it_matters, suggested_exercise.
+Keep it deterministic and explain extension points for future AI-generated reports.
+Step 9 — Implement the FastAPI routes (thin controllers)
+Prompt
+Implement routes:
+- app/routes/session.py:
+- POST /session/create
+- GET /session/{session_id}
+- app/routes/chat.py:
+- POST /chat: uses SessionManager, InputProcessor, PromptPayloadBuilder, AIRouter, ResponseFormatter
+- app/routes/evaluate.py:
+- POST /evaluate: uses SessionManager + EvaluationRouter, stores result in session
+- app/routes/report.py:
+- POST /report: uses SessionManager + ReportGenerator
+Requirements:
+- Use ResponseEnvelope for success responses too: success: true, data: ...
+- Add request_id header propagation (if header exists, echo it; otherwise generate).
+- Raise custom exceptions; handlers in error_handler should format responses.
+Return code for all route files.
+Step 10 — Wire everything in main.py
+Prompt
+Implement app/main.py:
+- Create FastAPI app
+- Include routers with prefix /api
+- Add CORS middleware using settings
+- Register exception handlers from error_handler.py
+- Add a basic health check GET /health
+- Add startup event to log settings (without secrets)
+Return code only.
+Step 11 — Quality gates (so it scales later)
+Prompt
+Write a minimal README.md backend section describing:
+- how to run (uvicorn)
+- env vars
+- endpoints and example curl
+- how to switch AI_PROVIDER to mock
+Also propose a test strategy (unit tests for services, integration tests for routes) but do not write tests yet.
+“Future innovations” checklist (make sure prompts enforce these)
+When you review generated code, ensure you have these hooks:
+AI provider abstraction (AIClient) and factory
+Prompt builder is versioned and isolated
+Session storage behind a service (easy Redis/DB later)
+Evaluation is pluggable (rule-based now, AI later)
+Consistent response envelope + typed schemas
+Clear separation: routes vs services vs models
