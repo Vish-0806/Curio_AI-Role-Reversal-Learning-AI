@@ -1,13 +1,17 @@
 from dotenv import load_dotenv
 import os
 from pathlib import Path
-from groq import Groq
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 load_dotenv(ROOT_DIR / ".env")
 
 
-def _get_client() -> Groq:
+def _get_client():
+    try:
+        from groq import Groq
+    except ImportError as exc:
+        raise ValueError("groq package is not installed. Run 'pip install groq'.") from exc
+
     api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
         raise ValueError("GROQ_API_KEY is not set in the environment")

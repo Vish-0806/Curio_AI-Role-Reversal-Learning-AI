@@ -1,17 +1,13 @@
 """
-Curio AI — Session Manager Service.
-
-In-memory session store for MVP, designed with a clean interface
-so persistence (Redis, PostgreSQL, etc.) can be swapped in later
-by implementing the same method signatures.
-
-Thread-safe via threading.Lock.
+Curio AI — Session Manager Service (MongoDB Version)
 """
 
-import threading
-from datetime import timedelta
-from typing import Dict, Optional
+from datetime import timedelta, timezone
+from typing import Optional, Dict
 
+from bson import ObjectId
+
+from app.database.mongodb import mongo_connected, mongo_error, sessions
 from app.config.settings import get_settings
 from app.models.session_model import (
     ConversationTurn,
@@ -27,55 +23,110 @@ logger = get_logger(__name__)
 
 class SessionManager:
     """
-    Manages teaching session lifecycle (in-memory).
-
-    Extension point: Replace this class with a DB-backed implementation
-    that has the same public interface (create_session, get_session, etc.).
+    MongoDB-backed session manager
     """
 
-    def __init__(self):
-        self._store: Dict[str, SessionState] = {}
-        self._lock = threading.Lock()
-
     def create_session(self, request: SessionCreateRequest) -> SessionState:
-        """Create a new teaching session."""
+        """Create a new teaching session"""
         settings = get_settings()
         now = utc_now()
+
         session = SessionState(
-            session_id=generate_id("sess"),
+            session_id="",  # temporary
             created_at=now,
             expires_at=now + timedelta(minutes=settings.SESSION_TTL_MINUTES),
             user_id=request.user_id,
             topic=request.topic,
             extras=request.metadata,
+            conversation=[],
+            last_evaluation=None,
         )
-        with self._lock:
-            self._store[session.session_id] = session
+
+        session_dict = session.model_dump()
+
+        # 🔥 STEP 1: INSERT INTO DB
+        result = sessions.insert_one(session_dict)
+
+        # 🔥 STEP 2: GET GENERATED ID
+        mongo_id = str(result.inserted_id)
+
+        # 🔥 STEP 3: UPDATE session_id FIELD IN DB
+        sessions.update_one(
+            {"_id": result.inserted_id},
+            {"$set": {"session_id": mongo_id}}
+        )
+
+        # 🔥 STEP 4: UPDATE OBJECT
+        session.session_id = mongo_id
 
         logger.info(
             "Session created",
-            extra={"session_id": session.session_id, "topic": request.topic},
+            extra={"session_id": mongo_id, "topic": request.topic},
         )
+
         return session
 
+    @property
+    def active_session_count(self) -> int:
+        """Return active session count for health endpoint."""
+        try:
+            return int(sessions.count_documents({}))
+        except Exception:
+            return 0
+
     def get_session(self, session_id: str) -> SessionState:
-        """
-        Retrieve a session by ID.
+        """Retrieve session from MongoDB with safe ObjectId validation."""
+        if not session_id or not isinstance(session_id, str):
+            logger.warning(
+                "Invalid session_id format",
+                extra={"session_id": session_id, "type": type(session_id).__name__},
+            )
+            raise NotFoundError(f"Invalid session ID format: '{session_id}'")
 
-        Raises:
-            NotFoundError: If session does not exist.
-            SessionExpiredError: If session has expired.
-        """
-        with self._lock:
-            session = self._store.get(session_id)
+        lookup_ids = []
+        
+        # Try ObjectId conversion safely
+        try:
+            if len(session_id) == 24:  # Valid hex string length for ObjectId
+                lookup_ids.append(ObjectId(session_id))
+                logger.debug(f"ObjectId conversion successful for: {session_id}")
+        except (ValueError, Exception) as e:
+            # ObjectId conversion failed, log and continue with string lookup
+            logger.debug(
+                "ObjectId conversion failed, will try string lookup",
+                extra={"session_id": session_id, "error": str(e)},
+            )
+        
+        # Always try string lookup as fallback
+        lookup_ids.append(session_id)
 
-        if session is None:
+        session_data = None
+        for lookup_id in lookup_ids:
+            try:
+                session_data = sessions.find_one({"_id": lookup_id})
+                if session_data is not None:
+                    logger.debug(f"Session found using lookup_id: {lookup_id}")
+                    break
+            except Exception as e:
+                logger.debug(f"Failed to query with lookup_id {lookup_id}: {str(e)}")
+                continue
+
+        if session_data is None:
+            logger.warning(f"Session not found: {session_id}")
             raise NotFoundError(f"Session '{session_id}' not found")
 
-        if utc_now() > session.expires_at:
-            # Clean up expired session
-            with self._lock:
-                self._store.pop(session_id, None)
+        session_data.pop("_id", None)
+
+        session = SessionState(**session_data)
+
+        expiry = session.expires_at
+        if expiry.tzinfo is None:
+            expiry = expiry.replace(tzinfo=timezone.utc)
+            session.expires_at = expiry
+
+        if utc_now() > expiry:
+            if "_id" in session_data:
+                sessions.delete_one({"_id": session_data["_id"]})
             raise SessionExpiredError(session_id)
 
         return session
@@ -87,19 +138,8 @@ class SessionManager:
         text: str,
         annotations: Optional[Dict] = None,
     ) -> SessionState:
-        """
-        Append a conversation turn to a session.
+        """Append a conversation turn"""
 
-        Args:
-            session_id: Target session
-            role: "user" or "ai"
-            text: Message content
-            annotations: Optional metadata (ai_intent, flags, etc.)
-
-        Returns:
-            Updated SessionState
-        """
-        session = self.get_session(session_id)
         turn = ConversationTurn(
             turn_id=generate_id("turn"),
             role=role,
@@ -108,12 +148,10 @@ class SessionManager:
             annotations=annotations,
         )
 
-        with self._lock:
-            session.conversation.append(turn)
-            # Enforce max conversation history
-            from app.config.constants import MAX_CONVERSATION_HISTORY
-            if len(session.conversation) > MAX_CONVERSATION_HISTORY:
-                session.conversation = session.conversation[-MAX_CONVERSATION_HISTORY:]
+        sessions.update_one(
+            {"_id": ObjectId(session_id)},
+            {"$push": {"conversation": turn.model_dump()}}
+        )
 
         logger.info(
             "Turn appended",
@@ -121,48 +159,29 @@ class SessionManager:
                 "session_id": session_id,
                 "role": role,
                 "turn_id": turn.turn_id,
-                "total_turns": len(session.conversation),
             },
         )
-        return session
+
+        return self.get_session(session_id)
 
     def update_last_evaluation(self, session_id: str, evaluation_result: dict) -> SessionState:
-        """Store the latest evaluation result in the session."""
-        session = self.get_session(session_id)
-        with self._lock:
-            session.last_evaluation = evaluation_result
+        """Store evaluation in MongoDB"""
+
+        sessions.update_one(
+            {"_id": ObjectId(session_id)},
+            {"$set": {"last_evaluation": evaluation_result}}
+        )
+
         logger.info("Evaluation stored", extra={"session_id": session_id})
-        return session
 
-    def cleanup_expired_sessions(self) -> int:
-        """
-        Remove all expired sessions from the store.
-
-        Returns:
-            Number of sessions removed.
-        """
-        now = utc_now()
-        removed = 0
-        with self._lock:
-            expired_ids = [
-                sid for sid, s in self._store.items()
-                if now > s.expires_at
-            ]
-            for sid in expired_ids:
-                del self._store[sid]
-                removed += 1
-
-        if removed:
-            logger.info(f"Cleaned up {removed} expired session(s)")
-        return removed
-
-    @property
-    def active_session_count(self) -> int:
-        """Return the number of active (non-expired) sessions."""
-        with self._lock:
-            return len(self._store)
+        return self.get_session(session_id)
 
 
-# ── Module-level singleton ───────────────────────────────────────
-# Services import this instance rather than creating their own.
+# Singleton instance
 session_manager = SessionManager()
+
+if not mongo_connected:
+    logger.warning(
+        "MongoDB unavailable. Using in-memory session store.",
+        extra={"mongo_error": mongo_error},
+    )

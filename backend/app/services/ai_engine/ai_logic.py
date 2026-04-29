@@ -1,8 +1,8 @@
 import random
 
-from prompt_builder import build_student_prompt
-from llm_client import call_llm
-from mistake_injection import inject_mistake
+from app.services.ai_engine.prompt_builder import build_student_prompt
+from app.services.ai_engine.llm_client import call_llm
+from app.services.ai_engine.mistake_injection import inject_mistake
 
 
 def generate_ai_response(user_input: str) -> str:

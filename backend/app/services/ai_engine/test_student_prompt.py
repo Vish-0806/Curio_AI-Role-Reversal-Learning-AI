@@ -1,5 +1,5 @@
-from prompt_builder import build_student_prompt
-from llm_client import call_llm
+from app.services.ai_engine.prompt_builder import build_student_prompt
+from app.services.ai_engine.llm_client import call_llm
 
 
 def main() -> None:

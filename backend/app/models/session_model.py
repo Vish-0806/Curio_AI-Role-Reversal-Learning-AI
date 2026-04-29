@@ -6,9 +6,9 @@ creation, state tracking, conversation turns, and expiry.
 """
 
 from datetime import datetime
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional, Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.utils.helpers import generate_id, utc_now
 
@@ -19,9 +19,31 @@ from app.utils.helpers import generate_id, utc_now
 
 class SessionCreateRequest(BaseModel):
     """Payload to create a new teaching session."""
-    user_id: Optional[str] = Field(default=None, description="Optional user identifier")
+    user_id: Optional[Union[str, int]] = Field(default=None, description="Optional user identifier (accepts string or int)")
     topic: Optional[str] = Field(default=None, description="Topic the user will teach")
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Arbitrary metadata")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Arbitrary metadata (defaults to empty dict)")
+
+    @field_validator("user_id", mode="before")
+    @classmethod
+    def convert_user_id_to_string(cls, v):
+        """Convert int user_id to string, preserve string inputs."""
+        if v is None:
+            return None
+        if isinstance(v, int):
+            return str(v)
+        if isinstance(v, str):
+            return v
+        return str(v)
+
+    @field_validator("metadata", mode="before")
+    @classmethod
+    def ensure_metadata_dict(cls, v):
+        """Ensure metadata is always a dict, default to empty dict."""
+        if v is None:
+            return {}
+        if isinstance(v, dict):
+            return v
+        return {}
 
 
 class SessionCreateResponse(BaseModel):
