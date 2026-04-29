@@ -113,6 +113,7 @@ class ChatResponse(BaseModel):
     session_id: str
     ai_message: str = Field(description="The AI student's response text")
     ai_intent: str = Field(
+        default="question",
         description="AI's intent: question, challenge, hint, mistake, acknowledgment, etc.",
     )
     followups: List[str] = Field(
@@ -123,4 +124,26 @@ class ChatResponse(BaseModel):
     updated_state_summary: Optional[str] = Field(
         default=None,
         description="Brief summary of session state changes",
+    )
+    
+    # ── NEW COGNITIVE SYSTEM FIELDS ──
+    mode: Optional[str] = Field(
+        default="student",
+        description="Current AI mode: student, teacher, rescue, evaluator",
+    )
+    difficulty_level: Optional[int] = Field(
+        default=1,
+        description="Current difficulty level: 1 (beginner), 2 (intermediate), 3 (expert)",
+    )
+    confidence_score: Optional[float] = Field(
+        default=0.0,
+        description="System's confidence in user understanding (0-100)",
+    )
+    progress_state: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Session progress tracking data",
+    )
+    termination_offer: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Optional offer to end session when confidence is high",
     )
