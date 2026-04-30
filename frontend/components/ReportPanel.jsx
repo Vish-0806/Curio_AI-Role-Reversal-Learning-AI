@@ -9,16 +9,16 @@ const ReportPanel = ({ report, isSessionActive }) => {
   if (!report && isSessionActive) {
     return (
       <div className="space-y-6">
-        <div className="relative overflow-hidden rounded-3xl border border-blue-100 bg-white p-8 text-center shadow-xl">
-          <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-blue-50/50 blur-2xl"></div>
-          <div className="absolute -bottom-8 -left-8 h-24 w-24 rounded-full bg-indigo-50/50 blur-2xl"></div>
+        <div className="relative overflow-hidden rounded-[2.5rem] border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900/40 p-8 text-center shadow-xl backdrop-blur-md">
+          <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-blue-50/50 dark:bg-blue-600/20 blur-2xl"></div>
+          <div className="absolute -bottom-8 -left-8 h-24 w-24 rounded-full bg-indigo-50/50 dark:bg-indigo-600/20 blur-2xl"></div>
           
           <div className="relative flex flex-col items-center">
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 animate-pulse">
               <Zap size={32} />
             </div>
-            <h3 className="text-xl font-bold text-slate-900">Session in Progress</h3>
-            <p className="mt-2 text-sm leading-relaxed text-slate-500">
+            <h3 className="text-xl font-black tracking-tighter text-slate-900 dark:text-white">Session in Progress</h3>
+            <p className="mt-2 text-sm leading-relaxed text-slate-500 dark:text-slate-400 font-medium">
               Our AI is currently analyzing your teaching patterns. Your personalized insight report will appear here once the session concludes.
             </p>
             <div className="mt-6 flex gap-2">
@@ -34,11 +34,11 @@ const ReportPanel = ({ report, isSessionActive }) => {
 
   if (!report) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-slate-200 bg-slate-50/50 p-12 text-center">
-        <div className="mb-4 text-slate-300">
+      <div className="flex flex-col items-center justify-center rounded-[2.5rem] border-2 border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/20 p-12 text-center backdrop-blur-sm">
+        <div className="mb-4 text-slate-300 dark:text-slate-700">
           <TrendingUp size={48} />
         </div>
-        <p className="text-sm font-medium text-slate-500">Ready to analyze your learning progress.</p>
+        <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Ready to analyze your learning progress.</p>
       </div>
     );
   }
@@ -53,21 +53,21 @@ const ReportPanel = ({ report, isSessionActive }) => {
   const Section = ({ id, icon: Icon, title, color, count, children, defaultExpanded = false }) => {
     const isExpanded = expandedSection === id || (expandedSection === null && defaultExpanded);
     const colors = {
-      emerald: "bg-emerald-50 text-emerald-700 border-emerald-100",
-      amber: "bg-amber-50 text-amber-700 border-amber-100",
-      rose: "bg-rose-50 text-rose-700 border-rose-100",
-      blue: "bg-blue-50 text-blue-700 border-blue-100",
-      slate: "bg-slate-50 text-slate-700 border-slate-200",
+      emerald: "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-100 dark:border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.05)]",
+      amber: "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-100 dark:border-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.05)]",
+      rose: "bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-100 dark:border-rose-500/20 shadow-[0_0_15px_rgba(244,63,94,0.05)]",
+      blue: "bg-blue-50 dark:bg-blue-600/10 text-blue-700 dark:text-blue-400 border-blue-100 dark:border-blue-600/20 shadow-[0_0_15px_rgba(37,99,235,0.05)]",
+      slate: "bg-slate-50 dark:bg-white/5 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/10",
     };
 
     return (
-      <div className={`overflow-hidden rounded-2xl border transition-all duration-300 ${isExpanded ? "shadow-md" : "shadow-sm hover:shadow-md"} ${colors[color] || colors.slate}`}>
+      <div className={`overflow-hidden rounded-[1.5rem] border backdrop-blur-md transition-all duration-300 ${isExpanded ? "shadow-md" : "shadow-sm hover:shadow-md"} ${colors[color] || colors.slate}`}>
         <button 
           onClick={() => toggleSection(id)}
           className="flex w-full items-center justify-between p-4 font-bold outline-none"
         >
           <div className="flex items-center gap-3">
-            <div className={`flex h-8 w-8 items-center justify-center rounded-lg bg-white/80 shadow-sm`}>
+            <div className={`flex h-8 w-8 items-center justify-center rounded-xl bg-white/80 dark:bg-white/10 shadow-sm`}>
               <Icon size={18} />
             </div>
             <div className="flex flex-col items-start">
@@ -95,7 +95,7 @@ const ReportPanel = ({ report, isSessionActive }) => {
       </div>
 
       {/* Score Card */}
-      <div className="group relative overflow-hidden rounded-[2rem] bg-slate-900 p-8 text-white shadow-2xl transition-all duration-500 hover:-translate-y-1">
+      <div className="group relative overflow-hidden rounded-[2.5rem] bg-[#020617] dark:bg-white/5 dark:border dark:border-white/10 p-8 text-white shadow-2xl transition-all duration-500 hover:-translate-y-1 backdrop-blur-md">
         <div className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-blue-600/20 blur-3xl transition-all duration-500 group-hover:scale-150"></div>
         <div className="absolute -left-12 -bottom-12 h-40 w-40 rounded-full bg-indigo-600/20 blur-3xl transition-all duration-500 group-hover:scale-150"></div>
         
@@ -130,13 +130,13 @@ const ReportPanel = ({ report, isSessionActive }) => {
 
       {/* Executive Summary */}
       {report.summary && (
-        <div className="relative rounded-2xl border border-slate-200 bg-white p-5 shadow-sm overflow-hidden group">
-          <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+        <div className="relative rounded-[1.5rem] border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 p-5 shadow-sm overflow-hidden group backdrop-blur-md">
+          <div className="absolute top-0 left-0 w-1 h-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]"></div>
           <div className="flex gap-4">
             <div className="text-blue-500 mt-1 shrink-0">
               <Star size={20} />
             </div>
-            <p className="text-sm italic leading-relaxed text-slate-600 font-medium">
+            <p className="text-sm italic leading-relaxed text-slate-600 dark:text-slate-300 font-medium">
               "{report.summary}"
             </p>
           </div>
@@ -208,11 +208,11 @@ const ReportPanel = ({ report, isSessionActive }) => {
         >
           <div className="space-y-3">
             {report.recommendations?.map((r, idx) => (
-              <div key={idx} className="flex items-center gap-4 rounded-xl bg-white p-3 shadow-sm transition-all hover:translate-x-1">
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-xs font-black text-blue-600">
+              <div key={idx} className="flex items-center gap-4 rounded-xl bg-white dark:bg-white/5 p-3 shadow-sm transition-all hover:translate-x-1">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-600/20 text-xs font-black text-blue-600 dark:text-blue-400">
                   {idx + 1}
                 </div>
-                <p className="text-xs font-bold text-slate-700 leading-tight">{r}</p>
+                <p className="text-xs font-bold text-slate-700 dark:text-slate-300 leading-tight">{r}</p>
               </div>
             ))}
           </div>

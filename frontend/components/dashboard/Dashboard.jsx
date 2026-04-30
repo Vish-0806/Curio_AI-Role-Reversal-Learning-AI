@@ -80,7 +80,7 @@ const Dashboard = ({ userEmail, onSelectReport, onBackToLearning, globalSettings
   return (
     <div className="flex min-h-screen bg-transparent font-outfit transition-colors duration-500">
       {/* Sidebar */}
-      <aside className="w-72 bg-white/60 dark:bg-slate-900/60 backdrop-blur-2xl border-r border-slate-200/50 dark:border-slate-800/50 flex flex-col sticky top-0 h-screen z-20 animate-fade-in-up">
+      <aside className="w-72 bg-white/5 dark:bg-[#020617]/80 backdrop-blur-2xl border-r border-slate-900/10 dark:border-white/10 flex flex-col sticky top-0 h-screen z-20 animate-fade-in-up">
         <div className="p-8">
           <div className="flex items-center gap-3 mb-10 group cursor-pointer" onClick={() => setCurrentTab('overview')}>
             <div className="h-10 w-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-200 group-hover:rotate-12 transition-transform">
@@ -144,7 +144,7 @@ const Dashboard = ({ userEmail, onSelectReport, onBackToLearning, globalSettings
                 </div>
                 <button 
                   onClick={onBackToLearning}
-                  className="flex items-center gap-3 bg-blue-600 text-white px-8 py-4 rounded-[2rem] text-sm font-black shadow-2xl shadow-blue-100 dark:shadow-blue-900/40 hover:bg-blue-700 hover:-translate-y-1 transition-all active:scale-95"
+                  className="group relative flex items-center gap-3 px-10 py-5 rounded-[2.5rem] font-black text-sm transition-all shadow-2xl active:scale-95 tracking-tighter dark:bg-blue-600 dark:text-white dark:shadow-blue-600/30 dark:hover:bg-blue-500 dark:hover:scale-105 bg-slate-900 text-white shadow-slate-900/20 hover:bg-slate-800 hover:scale-105"
                 >
                   <Zap size={18} className="fill-current" />
                   START TEACHING
@@ -160,7 +160,7 @@ const Dashboard = ({ userEmail, onSelectReport, onBackToLearning, globalSettings
                 ].map((stat, i) => (
                   <div 
                     key={i}
-                    className="glass-card dark:bg-slate-900/40 rounded-[2.5rem] p-8 relative overflow-hidden group hover:-translate-y-1 transition-all duration-300"
+                    className="glass-card bg-white dark:bg-white/5 dark:border dark:border-white/10 rounded-[2.5rem] p-8 relative overflow-hidden group hover:-translate-y-1 transition-all duration-300 shadow-sm backdrop-blur-md"
                   >
                     <div className={`absolute -right-8 -top-8 h-24 w-24 rounded-full ${stat.color === 'blue' ? 'bg-blue-500/5' : stat.color === 'emerald' ? 'bg-emerald-500/5' : 'bg-amber-500/5'} blur-2xl group-hover:scale-150 transition-transform duration-500`}></div>
                     <div className="relative flex items-center gap-5 mb-6">
@@ -198,7 +198,7 @@ const Dashboard = ({ userEmail, onSelectReport, onBackToLearning, globalSettings
                       <div
                         key={report.report_id || index}
                         onClick={() => onSelectReport(report)}
-                        className="glass-card dark:bg-slate-900/40 group cursor-pointer p-6 rounded-[2.5rem] flex items-center gap-6 hover:border-blue-200 dark:hover:border-blue-800 transition-all duration-300 hover:scale-[1.02] active:scale-95"
+                        className="glass-card bg-white dark:bg-white/5 dark:border dark:border-white/10 group cursor-pointer p-6 rounded-[2.5rem] flex items-center gap-6 hover:border-blue-200 dark:hover:border-blue-500/50 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-blue-600/20 active:scale-95 backdrop-blur-md"
                       >
                         <div className="h-20 w-20 rounded-[2rem] bg-slate-900 dark:bg-blue-600 flex flex-col items-center justify-center text-white shrink-0 group-hover:bg-blue-600 dark:group-hover:bg-blue-500 transition-colors shadow-lg">
                           <span className="text-2xl font-black">{report.understanding_score || 0}%</span>
@@ -244,7 +244,7 @@ const Dashboard = ({ userEmail, onSelectReport, onBackToLearning, globalSettings
                     placeholder="Search reports..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-11 pr-4 py-3 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-800 outline-none focus:border-blue-500 transition-all font-bold text-sm dark:text-white"
+                    className="w-full pl-11 pr-4 py-3 bg-white/50 dark:bg-white/5 backdrop-blur-md rounded-[2rem] border border-slate-200 dark:border-white/10 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all font-bold text-sm dark:text-white"
                   />
                 </div>
               </div>
@@ -257,7 +257,7 @@ const Dashboard = ({ userEmail, onSelectReport, onBackToLearning, globalSettings
                     <div
                       key={report.report_id || index}
                       onClick={() => onSelectReport(report)}
-                      className="glass-card dark:bg-slate-900/40 group cursor-pointer p-5 rounded-2xl flex items-center justify-between hover:border-blue-500 transition-all hover:translate-x-2 active:scale-95"
+                      className="glass-card bg-white dark:bg-white/5 dark:border dark:border-white/10 group cursor-pointer p-5 rounded-[2rem] flex items-center justify-between hover:border-blue-500 transition-all hover:translate-x-2 active:scale-95 backdrop-blur-md"
                     >
                       <div className="flex items-center gap-6">
                         <div className="h-12 w-12 rounded-xl bg-slate-900 dark:bg-blue-600 text-white flex items-center justify-center font-black shadow-lg group-hover:bg-blue-600 dark:group-hover:bg-blue-500 transition-colors">
@@ -298,7 +298,7 @@ const Dashboard = ({ userEmail, onSelectReport, onBackToLearning, globalSettings
 
               <div className="grid gap-6">
                 {/* Personality Setting */}
-                <div className="glass-card dark:bg-slate-900/40 p-8 rounded-[2rem] space-y-6">
+                <div className="glass-card bg-white dark:bg-white/5 dark:border dark:border-white/10 p-8 rounded-[2.5rem] space-y-6 backdrop-blur-md">
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-lg font-black text-slate-900 dark:text-white">AI Personality</h3>
@@ -330,7 +330,7 @@ const Dashboard = ({ userEmail, onSelectReport, onBackToLearning, globalSettings
                     { id: 'darkMode', label: 'Dark Mode', desc: 'High-contrast theme for focus', icon: Moon },
                     { id: 'notifications', label: 'Smart Notifications', desc: 'Receive learning gap alerts', icon: Sparkles }
                   ].map(s => (
-                    <div key={s.id} className="glass-card dark:bg-slate-900/40 p-8 rounded-[2rem] flex flex-col justify-between group">
+                    <div key={s.id} className="glass-card bg-white dark:bg-white/5 dark:border dark:border-white/10 p-8 rounded-[2.5rem] flex flex-col justify-between group backdrop-blur-md">
                       <div className="flex items-center justify-between mb-4">
                         <div className="h-10 w-10 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/40 group-hover:text-blue-600 transition-all">
                           <s.icon size={20} />
@@ -351,7 +351,7 @@ const Dashboard = ({ userEmail, onSelectReport, onBackToLearning, globalSettings
                 </div>
 
                 {/* Save Section */}
-                <div className="flex items-center justify-between p-8 bg-slate-900 dark:bg-blue-600 rounded-[2rem] text-white shadow-2xl shadow-slate-200 dark:shadow-blue-900/20">
+                <div className="flex items-center justify-between p-8 bg-slate-900 dark:bg-blue-600 rounded-[2.5rem] text-white shadow-2xl shadow-slate-200 dark:shadow-blue-600/30">
                   <div className="flex items-center gap-4">
                     <Check className="text-emerald-400" size={24} />
                     <p className="font-bold text-sm">Settings are auto-saved to your profile</p>
@@ -375,7 +375,7 @@ const Dashboard = ({ userEmail, onSelectReport, onBackToLearning, globalSettings
 
           {currentTab === 'profile' && (
             <div className="max-w-2xl mx-auto animate-fade-in-up">
-              <div className="glass-card dark:bg-slate-900/40 rounded-[3rem] p-12 text-center">
+              <div className="glass-card bg-white dark:bg-white/5 dark:border dark:border-white/10 backdrop-blur-md rounded-[3rem] p-12 text-center shadow-xl">
                 <div className="relative inline-block mb-8">
                   <div className="h-32 w-32 rounded-[2.5rem] bg-gradient-to-br from-blue-500 to-indigo-600 border-8 border-white dark:border-slate-800 shadow-2xl flex items-center justify-center text-white">
                     <UserIcon size={64} />
@@ -388,11 +388,11 @@ const Dashboard = ({ userEmail, onSelectReport, onBackToLearning, globalSettings
                 <p className="text-blue-600 font-black uppercase tracking-widest text-xs">Master Explainer • Level 12</p>
                 
                 <div className="grid grid-cols-2 gap-6 mt-12">
-                  <div className="bg-slate-50/50 dark:bg-slate-800/50 p-8 rounded-[2rem] border border-slate-100 dark:border-slate-800">
+                  <div className="bg-slate-50/50 dark:bg-[#020617]/50 p-8 rounded-[2.5rem] border border-slate-100 dark:border-white/10 backdrop-blur-md">
                     <p className="text-3xl font-black text-slate-900 dark:text-white">2,450</p>
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Knowledge XP</p>
                   </div>
-                  <div className="bg-slate-50/50 dark:bg-slate-800/50 p-8 rounded-[2rem] border border-slate-100 dark:border-slate-800">
+                  <div className="bg-slate-50/50 dark:bg-[#020617]/50 p-8 rounded-[2.5rem] border border-slate-100 dark:border-white/10 backdrop-blur-md">
                     <p className="text-3xl font-black text-slate-900 dark:text-white">14</p>
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Global Rank</p>
                   </div>

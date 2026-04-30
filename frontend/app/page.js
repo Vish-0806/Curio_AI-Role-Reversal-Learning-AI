@@ -183,9 +183,12 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen font-outfit selection:bg-blue-100 selection:text-blue-900 transition-colors duration-500 dark:bg-slate-950">
-      {/* Mesh Background */}
-      <div className="mesh-bg"></div>
+    <div className="min-h-screen font-outfit selection:bg-blue-500/30 transition-colors duration-700 bg-[#f8fafc] dark:bg-[#020617]">
+      {/* Floating Effects */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <div className="absolute top-1/4 left-10 h-32 w-32 bg-blue-600/5 dark:bg-blue-600/10 blur-[100px] animate-pulse"></div>
+        <div className="absolute bottom-1/4 right-10 h-40 w-40 bg-indigo-600/5 dark:bg-indigo-600/10 blur-[120px] animate-pulse" style={{ animationDelay: '2s' }}></div>
+      </div>
 
       <div className="view-container relative z-10">
         {currentView === "dashboard" ? (
@@ -202,7 +205,7 @@ export default function Home() {
         ) : (
           <div className="relative animate-fade-in-up">
             {/* Top Navigation Bar */}
-            <nav className="sticky top-0 z-40 bg-white/60 dark:bg-slate-950/60 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50 px-8 py-4">
+            <nav className="sticky top-0 z-40 px-8 py-4 bg-slate-900/5 backdrop-blur-xl border-b border-slate-900/10 dark:bg-[#020617]/80 dark:border-white/10 transition-all duration-700">
               <div className="mx-auto max-w-[1400px] flex items-center justify-between">
                 <div className="flex items-center gap-8">
                   <div 
@@ -242,7 +245,7 @@ export default function Home() {
                   />
                   <button 
                     onClick={handleNewSession}
-                    className="hidden sm:flex items-center gap-2 bg-slate-900 dark:bg-blue-600 text-white px-6 py-2.5 rounded-2xl text-xs font-black shadow-xl shadow-slate-200 dark:shadow-blue-900/20 hover:bg-blue-600 dark:hover:bg-blue-500 transition-all duration-300 active:scale-95"
+                    className="hidden sm:flex items-center gap-2 px-8 py-3 rounded-2xl text-xs font-black transition-all active:scale-95 border dark:bg-white/5 dark:backdrop-blur-md dark:border-white/10 dark:text-white dark:hover:bg-white dark:hover:text-slate-900 bg-slate-900/5 backdrop-blur-md border-slate-900/10 text-slate-900 hover:bg-slate-900 hover:text-white"
                   >
                     NEW SESSION
                   </button>
@@ -322,7 +325,7 @@ export default function Home() {
                         <button
                           onClick={() => setShowEndModal(true)}
                           disabled={isLoading}
-                          className="group flex items-center gap-2 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-8 py-4 text-sm font-black text-slate-700 dark:text-slate-300 transition-all hover:bg-rose-50 dark:hover:bg-rose-900/20 hover:border-rose-200 dark:hover:border-rose-800 hover:text-rose-600 disabled:opacity-50 shadow-sm active:scale-95"
+                          className="group flex items-center gap-2 rounded-[2.5rem] bg-slate-900/5 dark:bg-white/5 border border-slate-900/10 dark:border-white/10 px-8 py-4 text-sm font-black text-slate-700 dark:text-white transition-all hover:bg-rose-500 hover:text-white hover:border-rose-500 dark:hover:bg-rose-500 dark:hover:border-rose-500 disabled:opacity-50 shadow-sm active:scale-95 backdrop-blur-md"
                         >
                           <LogOut size={18} className="group-hover:translate-x-1 transition-transform" />
                           END SESSION
@@ -342,8 +345,8 @@ export default function Home() {
 
                   <div className="grid gap-10 lg:grid-cols-12 items-start">
                     <div className="lg:col-span-7 xl:col-span-8 space-y-6">
-                      <div className="rounded-[3rem] bg-white dark:bg-slate-900/40 p-2 shadow-[0_20px_50px_rgba(0,0,0,0.02)] border border-slate-100 dark:border-slate-800">
-                        <div className="rounded-[2.5rem] bg-slate-50/50 dark:bg-slate-900/20 p-6">
+                      <div className="rounded-[3rem] bg-white dark:bg-slate-900/60 p-2 shadow-[0_20px_50px_rgba(0,0,0,0.02)] border border-slate-100 dark:border-white/5 backdrop-blur-md">
+                        <div className="rounded-[2.5rem] bg-slate-50/50 dark:bg-slate-900/40 p-6">
                           <ChatWindow messages={messages} />
                         </div>
                       </div>
@@ -396,9 +399,9 @@ export default function Home() {
                     </p>
                     <button 
                       onClick={handleNewSession}
-                      className="px-12 py-6 bg-slate-900 dark:bg-blue-600 text-white rounded-[2rem] font-black text-lg shadow-2xl shadow-slate-200 dark:shadow-blue-900/20 hover:bg-blue-600 dark:hover:bg-blue-500 transition-all duration-300 flex items-center gap-3 mx-auto active:scale-95 tracking-widest uppercase"
+                      className="group relative flex items-center justify-center gap-4 px-12 py-7 rounded-[2.5rem] font-black text-xl transition-all shadow-2xl active:scale-95 tracking-tighter dark:bg-blue-600 dark:text-white dark:shadow-blue-600/30 dark:hover:bg-blue-500 dark:hover:scale-105 bg-slate-900 text-white shadow-slate-900/20 hover:bg-slate-800 hover:scale-105 mx-auto"
                     >
-                      <Zap size={20} className="fill-current" />
+                      <Zap size={22} className="fill-current" />
                       SELECT SUBJECT
                     </button>
                   </div>

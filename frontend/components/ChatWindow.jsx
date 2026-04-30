@@ -32,21 +32,21 @@ const ChatWindow = ({ messages = [] }) => {
   const getIntentColor = (intent) => {
     switch (intent) {
       case "hint":
-        return "border-amber-200 bg-amber-50 text-amber-900 dark:bg-amber-900/10 dark:border-amber-900/30 dark:text-amber-400";
+        return "border-amber-200 bg-amber-50 text-amber-900 dark:bg-amber-500/10 dark:border-amber-500/30 dark:text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.05)]";
       case "challenge":
-        return "border-rose-200 bg-rose-50 text-rose-900 dark:bg-rose-900/10 dark:border-rose-900/30 dark:text-rose-400";
+        return "border-rose-200 bg-rose-50 text-rose-900 dark:bg-rose-500/10 dark:border-rose-500/30 dark:text-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.05)]";
       case "acknowledgment":
-        return "border-emerald-200 bg-emerald-50 text-emerald-900 dark:bg-emerald-900/10 dark:border-emerald-900/30 dark:text-emerald-400";
+        return "border-emerald-200 bg-emerald-50 text-emerald-900 dark:bg-emerald-500/10 dark:border-emerald-500/30 dark:text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.05)]";
       case "question":
       case "student":
-        return "border-blue-200 bg-blue-50 text-blue-900 dark:bg-blue-900/10 dark:border-blue-900/30 dark:text-blue-400";
+        return "border-blue-200 bg-blue-50 text-blue-900 dark:bg-blue-600/10 dark:border-blue-600/30 dark:text-blue-400 shadow-[0_0_15px_rgba(37,99,235,0.05)]";
       default:
-        return "border-slate-200 bg-slate-50 text-slate-900 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300";
+        return "border-slate-200 bg-slate-50 text-slate-900 dark:bg-white/5 dark:border-white/10 dark:text-slate-300";
     }
   };
 
   return (
-    <div className="flex h-[500px] flex-col rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
+    <div className="flex h-[500px] flex-col bg-transparent overflow-hidden">
       {/* Messages Container */}
       <div
         ref={scrollRef}
@@ -91,10 +91,10 @@ const ChatWindow = ({ messages = [] }) => {
 
                   {/* Message bubble */}
                   <div
-                    className={`rounded-2xl px-5 py-4 shadow-sm transition-all hover:shadow-md ${
+                    className={`rounded-[2rem] px-6 py-4 transition-all hover:scale-[1.01] ${
                       isUser
-                        ? "rounded-tr-lg bg-blue-600 text-white font-medium"
-                        : `rounded-tl-lg border ${getIntentColor(intent)}`
+                        ? "rounded-tr-xl bg-blue-600 text-white font-medium shadow-lg shadow-blue-600/20 dark:shadow-blue-600/30"
+                        : `rounded-tl-xl border backdrop-blur-md ${getIntentColor(intent)}`
                     }`}
                   >
                     <p className="whitespace-pre-wrap break-words text-[0.95rem] leading-relaxed">
@@ -131,11 +131,11 @@ const ChatWindow = ({ messages = [] }) => {
       </div>
 
       {/* Footer indicator */}
-      <div className="border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 px-6 py-3 flex justify-between items-center">
-        <div className="flex gap-1">
-          {[0, 1, 2].map(i => <div key={i} className="h-1 w-1 rounded-full bg-slate-300 dark:bg-slate-700"></div>)}
+      <div className="pt-4 flex justify-between items-center opacity-50">
+        <div className="flex gap-1.5">
+          {[0, 1, 2].map(i => <div key={i} className="h-1.5 w-1.5 rounded-full bg-slate-300 dark:bg-slate-600"></div>)}
         </div>
-        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-600">
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
           {messages.length} Interaction{messages.length === 1 ? "" : "s"}
         </p>
       </div>

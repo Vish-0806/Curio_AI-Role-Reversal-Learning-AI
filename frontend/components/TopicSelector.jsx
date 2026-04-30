@@ -39,9 +39,9 @@ const TopicSelector = ({ onSelectTopic, isOpen }) => {
       />
 
       {/* Modal Container */}
-      <div className="relative w-full max-w-2xl overflow-hidden rounded-[3rem] bg-white dark:bg-slate-900 shadow-2xl animate-fade-in-up border border-slate-200 dark:border-slate-800">
+      <div className="relative w-full max-w-2xl overflow-hidden rounded-[3rem] bg-white dark:bg-[#020617]/80 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] dark:shadow-blue-900/20 animate-fade-in-up border border-slate-200 dark:border-white/10">
         {/* Decorative Background */}
-        <div className="absolute top-0 left-0 right-0 h-40 bg-gradient-to-b from-blue-600 to-indigo-600 opacity-5 dark:opacity-10"></div>
+        <div className="absolute top-0 left-0 right-0 h-40 bg-gradient-to-b from-blue-600 to-indigo-600 opacity-5 dark:opacity-10 pointer-events-none"></div>
         
         <div className="relative p-10">
           {/* Close Button */}
@@ -73,7 +73,7 @@ const TopicSelector = ({ onSelectTopic, isOpen }) => {
                 <button
                   key={topic.id}
                   onClick={() => onSelectTopic(topic.label)}
-                  className="group relative flex flex-col items-center gap-2 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 p-4 transition-all hover:bg-white dark:hover:bg-slate-800 hover:border-blue-200 dark:hover:border-blue-800 hover:shadow-xl hover:shadow-blue-100/20 dark:hover:shadow-blue-900/20 hover:-translate-y-1 active:scale-95"
+                  className="group relative flex flex-col items-center gap-2 rounded-[2rem] border border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/5 backdrop-blur-md p-4 transition-all hover:bg-white dark:hover:bg-white/10 hover:border-blue-200 dark:hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-100/20 dark:hover:shadow-blue-600/20 hover:-translate-y-1 active:scale-95"
                 >
                   <span className={`text-2xl transition-transform group-hover:scale-125 duration-300`}>{topic.icon}</span>
                   <span className="text-sm font-black text-slate-700 dark:text-slate-300">{topic.label}</span>
@@ -100,14 +100,14 @@ const TopicSelector = ({ onSelectTopic, isOpen }) => {
                 value={customTopic}
                 onChange={(e) => setCustomTopic(e.target.value)}
                 placeholder="e.g., Quantum Mechanics, French Revolution..."
-                className="w-full rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 py-4 pl-14 pr-6 text-sm font-black text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 outline-none transition-all focus:bg-white dark:focus:bg-slate-800 focus:border-blue-600 dark:focus:border-blue-600 focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/20 shadow-sm"
+                className="w-full rounded-[2rem] border border-slate-100 dark:border-white/10 bg-slate-50/50 dark:bg-[#020617]/50 backdrop-blur-md py-5 pl-14 pr-6 text-sm font-black text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none transition-all focus:bg-white dark:focus:bg-white/5 focus:border-blue-600 dark:focus:border-blue-500/50 focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-600/20 shadow-sm"
               />
             </div>
 
             <button
               type="submit"
               disabled={!customTopic.trim()}
-              className="w-full rounded-2xl bg-slate-900 dark:bg-blue-600 py-5 text-sm font-black text-white shadow-xl shadow-slate-200 dark:shadow-blue-900/20 transition-all hover:bg-blue-600 dark:hover:bg-blue-500 hover:shadow-blue-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-95"
+              className="w-full rounded-[2.5rem] bg-slate-900 dark:bg-blue-600 py-5 text-sm font-black text-white shadow-xl shadow-slate-200 dark:shadow-blue-600/30 transition-all hover:bg-blue-600 dark:hover:bg-blue-500 hover:shadow-blue-200 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-95 tracking-tighter"
             >
               <Sparkles size={18} />
               GENERATE LESSON

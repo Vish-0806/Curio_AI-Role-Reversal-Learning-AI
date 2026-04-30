@@ -42,9 +42,9 @@ const InputBox = ({ onSend, onRescue }) => {
   return (
     <div className="relative group mt-6">
       {/* Decorative Glow */}
-      <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 rounded-[2.2rem] blur opacity-0 group-hover:opacity-100 transition duration-500"></div>
+      <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500/30 to-indigo-500/30 rounded-[2.7rem] blur-md opacity-0 group-hover:opacity-100 transition duration-500 pointer-events-none"></div>
       
-      <div className="relative rounded-[2rem] border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-900/80 backdrop-blur-md p-2 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:border-slate-300/80 dark:hover:border-slate-600">
+      <div className="relative rounded-[2.5rem] border border-slate-200/80 dark:border-white/10 bg-white dark:bg-[#020617]/60 backdrop-blur-md p-2 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:border-slate-300/80 dark:hover:border-white/20">
         <div className="flex flex-col">
           {/* Input Area */}
           <div className="relative flex items-start">
@@ -64,7 +64,7 @@ const InputBox = ({ onSend, onRescue }) => {
               <button
                 type="button"
                 onClick={() => onRescue?.()}
-                className="flex items-center gap-2 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 transition-all hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:border-amber-200 dark:hover:border-amber-800 hover:text-amber-700 dark:hover:text-amber-400 active:scale-95 shadow-sm"
+                className="flex items-center gap-2 rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 backdrop-blur-md px-5 py-2.5 text-xs font-black tracking-widest text-slate-600 dark:text-white transition-all hover:bg-amber-50 dark:hover:bg-amber-500/20 hover:border-amber-200 dark:hover:border-amber-500/50 hover:text-amber-700 dark:hover:text-amber-400 active:scale-95 shadow-sm"
               >
                 <LifeBuoy size={14} className="text-amber-500" />
                 GET HINT
@@ -83,10 +83,10 @@ const InputBox = ({ onSend, onRescue }) => {
                 onClick={handleSend}
                 disabled={isMessageEmpty || isSending}
                 className={`
-                  flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-bold transition-all duration-300 active:scale-95 shadow-lg
+                  flex items-center gap-2 rounded-[2.5rem] px-8 py-3 text-sm font-black tracking-tighter transition-all duration-300 active:scale-95 shadow-lg
                   ${isMessageEmpty || isSending
-                    ? "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed"
-                    : "bg-slate-900 dark:bg-blue-600 text-white shadow-slate-200 dark:shadow-blue-900/20 hover:bg-slate-800 dark:hover:bg-blue-500 hover:-translate-y-0.5 hover:shadow-xl"}
+                    ? "bg-slate-100 dark:bg-slate-800/50 text-slate-400 dark:text-slate-600 cursor-not-allowed border dark:border-white/5"
+                    : "bg-slate-900 dark:bg-blue-600 text-white shadow-slate-900/20 dark:shadow-blue-600/30 hover:bg-slate-800 dark:hover:bg-blue-500 hover:scale-105 hover:shadow-xl"}
                 `}
               >
                 {isSending ? (
