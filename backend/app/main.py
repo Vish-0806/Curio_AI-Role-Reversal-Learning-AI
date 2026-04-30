@@ -5,6 +5,23 @@ Wires together all routes, middleware, and exception handlers.
 Run with: uvicorn app.main:app --reload
 """
 
+import sys
+import subprocess
+import os
+
+try:
+    import openai
+    import multipart
+    import pymongo
+except ImportError:
+    print("Auto-installing required dependencies...")
+    req_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "requirements.txt")
+    if os.path.exists(req_path):
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", req_path])
+    else:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "openai", "python-multipart", "pymongo"])
+    print("Installation complete. Please restart the server if routes don't load immediately.")
+
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -66,6 +83,12 @@ app.include_router(session.router, prefix=API_PREFIX)
 app.include_router(chat.router, prefix=API_PREFIX)
 app.include_router(evaluate.router, prefix=API_PREFIX)
 app.include_router(report.router, prefix=API_PREFIX)
+
+try:
+    from app.routes.voice_routes import router as voice_router
+    app.include_router(voice_router, tags=["Voice"])
+except Exception as e:
+    logger.warning(f"Voice routes not loaded: {e}")
 
 
 # ── Health Check ─────────────────────────────────────────────────

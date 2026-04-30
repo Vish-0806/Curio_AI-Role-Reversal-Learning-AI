@@ -41,6 +41,10 @@ class Settings(BaseSettings):
         default=None,
         description="Groq API key (required when AI_PROVIDER=groq)",
     )
+    ENABLE_BACKEND_TTS: bool = Field(
+        default=False,
+        description="Set to True to use OpenAI TTS for backend audio generation",
+    )
 
     # ── Session ──────────────────────────────────────────────────
     SESSION_TTL_MINUTES: int = Field(
