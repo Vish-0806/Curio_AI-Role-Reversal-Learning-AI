@@ -1,9 +1,22 @@
-"""
-Curio AI — FastAPI Application Entry Point.
+import sys
+import subprocess
+import os
 
-Wires together all routes, middleware, and exception handlers.
-Run with: uvicorn app.main:app --reload
-"""
+try:
+    import openai
+    import multipart
+    import pymongo
+    import bson
+    import pydantic
+    import pydantic_settings
+except (ImportError, NameError, AttributeError):
+    print("Detected missing or incompatible dependencies. Auto-fixing environment...")
+    req_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "requirements.txt")
+    if os.path.exists(req_path):
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgrade", "-r", req_path])
+    else:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgrade", "openai", "python-multipart", "pymongo", "pydantic", "pydantic-settings", "groq"])
+    print("Environment fix complete. Please restart the server.")
 
 from contextlib import asynccontextmanager
 
@@ -67,6 +80,12 @@ app.include_router(chat.router, prefix=API_PREFIX)
 app.include_router(evaluate.router, prefix=API_PREFIX)
 app.include_router(report.router, prefix=API_PREFIX)
 
+try:
+    from app.routes.voice_routes import router as voice_router
+    app.include_router(voice_router, prefix=API_PREFIX, tags=["Voice"])
+except Exception as e:
+    logger.warning(f"Voice routes not loaded: {e}")
+
 
 # ── Health Check ─────────────────────────────────────────────────
 @app.get("/health", tags=["Health"])
@@ -85,4 +104,4 @@ async def health_check():
 if __name__ == "__main__":
     import uvicorn
     # This allows you to simply click "Run" in your IDE or run `python app/main.py`
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8001, reload=True)

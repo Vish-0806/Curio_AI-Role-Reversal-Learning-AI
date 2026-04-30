@@ -13,6 +13,7 @@ from app.models.chat_model import ChatRequest, ChatResponse, ResponseEnvelope, E
 from app.services.input_processor import process_input
 from app.services.session_manager import session_manager
 from app.services.ai_service import get_ai_response   # Adaptive cognitive controller
+from app.utils.error_handler import NotFoundError, SessionExpiredError
 from app.utils.helpers import generate_id
 from app.utils.logger import get_logger
 
@@ -179,6 +180,28 @@ async def chat(body: ChatRequest, request: Request):
         return ResponseEnvelope(
             success=True,
             data=chat_response,
+            request_id=request_id,
+        )
+
+    except (NotFoundError, SessionExpiredError) as e:
+        # Handle missing or expired sessions
+        error_code = "SESSION_NOT_FOUND" if isinstance(e, NotFoundError) else "SESSION_EXPIRED"
+        logger.warning(
+            f"Session error: {str(e)}",
+            extra={
+                "request_id": request_id,
+                "session_id": body.session_id,
+                "error_code": error_code,
+            },
+        )
+        return ResponseEnvelope(
+            success=False,
+            data=None,
+            error=ErrorDetail(
+                code=error_code,
+                message=str(e),
+                details={"session_id": body.session_id},
+            ),
             request_id=request_id,
         )
 

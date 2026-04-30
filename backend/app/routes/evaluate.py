@@ -12,7 +12,7 @@ from app.models.evaluation_model import EvaluationRequest
 from app.services.ai_service import generate_session_evaluation
 from app.services.session_manager import session_manager
 from app.services.report_generator import generate_report
-from app.utils.helpers import generate_id
+from app.utils.helpers import generate_id, utc_now
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -48,7 +48,19 @@ async def evaluate(body: EvaluationRequest, request: Request):
         # 3. Generate detailed report
         report = generate_report(session, evaluation)
         
-        # 4. Store evaluation result in session
+        # 4. Persistence: Store the report in the reports collection
+        # Add necessary metadata for the dashboard to find it
+        report_storage_data = {
+            **report,
+            "user_id": session.user_id,
+            "topic": session.topic,
+            "generated_at": utc_now().isoformat(),
+            "understanding_score": evaluation.get("overall_understanding_score", 0),
+            "mastery_level": evaluation.get("mastery_level", "Unknown")
+        }
+        session_manager.store_report(report_storage_data)
+        
+        # 5. Store evaluation result in session
         session_manager.update_last_evaluation(
             session_id=body.session_id,
             evaluation_result=evaluation,

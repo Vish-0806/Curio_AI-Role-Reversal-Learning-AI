@@ -63,6 +63,18 @@ class InMemoryCollection:
 				return dict(doc)
 		return None
 
+	def find(self, query: Dict[str, Any]) -> "InMemoryCursor":
+		results = []
+		for doc in self._store.values():
+			match = True
+			for k, v in query.items():
+				if doc.get(k) != v:
+					match = False
+					break
+			if match:
+				results.append(dict(doc))
+		return InMemoryCursor(results)
+
 	def delete_one(self, query: Dict[str, Any]) -> None:
 		if "_id" in query:
 			self._store.pop(str(query["_id"]), None)
@@ -74,6 +86,24 @@ class InMemoryCollection:
 
 	def count_documents(self, _query: Dict[str, Any]) -> int:
 		return len(self._store)
+
+
+class InMemoryCursor:
+	"""Mimics PyMongo cursor for in-memory store."""
+
+	def __init__(self, data: list):
+		self.data = data
+
+	def sort(self, key: str, direction: int = -1) -> "InMemoryCursor":
+		self.data.sort(key=lambda x: x.get(key, ""), reverse=(direction == -1))
+		return self
+
+	def limit(self, n: int) -> "InMemoryCursor":
+		self.data = self.data[:n]
+		return self
+
+	def __iter__(self):
+		return iter(self.data)
 
 
 def _create_mongo_collections() -> tuple[Any, Any, bool, Optional[str]]:

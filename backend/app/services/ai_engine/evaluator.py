@@ -34,42 +34,51 @@ class SessionEvaluator:
     ) -> Dict[str, Any]:
         """
         Perform comprehensive LLM-driven evaluation of a session.
-        
-        Args:
-            session: Completed SessionState
-            
-        Returns:
-            Comprehensive evaluation report
         """
+        from app.services.ai_engine.prompt_builder import build_evaluator_mode_prompt
+        from app.services.ai_engine.llm_client import call_llm
+        import json
         
         # Build conversation summary for analysis
-        conversation_text = self._build_conversation_text(session.conversation)
+        conversation_list = [
+            {"role": turn.role, "text": turn.text}
+            for turn in session.conversation
+        ]
         
-        # Get LLM analysis
-        llm_analysis = self._get_llm_analysis(
-            conversation_text,
+        prompt = build_evaluator_mode_prompt(
+            conversation_list,
             session.topic or "the topic"
         )
         
-        # Extract structured insights from analysis
-        strengths = self._parse_strengths(llm_analysis)
-        gaps = self._parse_gaps(llm_analysis)
-        misconceptions = self._parse_misconceptions(llm_analysis)
+        # Get LLM analysis
+        llm_analysis_raw = call_llm(prompt)
+        
+        # Try to parse JSON from the response
+        try:
+            # Clean response if LLM added markdown backticks
+            if "```json" in llm_analysis_raw:
+                llm_analysis_raw = llm_analysis_raw.split("```json")[1].split("```")[0].strip()
+            elif "```" in llm_analysis_raw:
+                llm_analysis_raw = llm_analysis_raw.split("```")[1].split("```")[0].strip()
+            
+            evaluation_json = json.loads(llm_analysis_raw)
+            if not isinstance(evaluation_json, dict):
+                raise ValueError("LLM response is not a JSON object")
+        except Exception as e:
+            logger.error(f"Failed to parse evaluation JSON: {str(e)}")
+            # Fallback
+            evaluation_json = {
+                "strengths": ["Demonstrated interest in the topic"],
+                "gaps": ["Detailed evaluation processing failed"],
+                "assumptions": [],
+                "struggle_moments": [],
+                "recommendations": ["Continue exploring the topic systematically"],
+                "mastery_score": int(session.confidence_score),
+                "overall_summary": llm_analysis_raw[:500]
+            }
         
         # Calculate overall understanding score
-        understanding_score = self._calculate_understanding_score(
-            session.user_response_quality_scores,
-            len(gaps),
-            len(strengths)
-        )
-        
-        # Generate recommendations
-        recommendations = self._generate_recommendations(
-            gaps,
-            misconceptions,
-            understanding_score,
-            session.difficulty_level
-        )
+        understanding_score = float(evaluation_json.get("mastery_score", session.confidence_score))
         
         evaluation = {
             "session_id": session.session_id,
@@ -83,11 +92,12 @@ class SessionEvaluator:
                 if session.user_response_quality_scores else 0.0
             ),
             "final_difficulty_reached": session.difficulty_level,
-            "strengths": strengths,
-            "gaps": gaps,
-            "misconceptions": misconceptions,
-            "recommendations": recommendations,
-            "ai_analysis": llm_analysis,
+            "strengths": evaluation_json.get("strengths", []),
+            "gaps": evaluation_json.get("gaps", []),
+            "assumptions": evaluation_json.get("assumptions", []),
+            "struggle_moments": evaluation_json.get("struggle_moments", []),
+            "recommendations": evaluation_json.get("recommendations", []),
+            "ai_analysis": evaluation_json.get("overall_summary", llm_analysis_raw),
         }
         
         logger.info(
@@ -95,8 +105,6 @@ class SessionEvaluator:
             extra={
                 "session_id": session.session_id,
                 "understanding_score": understanding_score,
-                "gaps_count": len(gaps),
-                "strengths_count": len(strengths),
             }
         )
         

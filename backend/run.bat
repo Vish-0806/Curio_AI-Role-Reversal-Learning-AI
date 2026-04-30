@@ -23,11 +23,11 @@ pip install -r requirements.txt
 echo [4/4] Starting Curio AI server...
 echo.
 echo ============================================
-echo   Server running at http://localhost:8000
-echo   API docs at http://localhost:8000/docs
-echo   Health check: http://localhost:8000/health
+echo   Server running at http://localhost:8001
+echo   API docs at http://localhost:8001/docs
+echo   Health check: http://localhost:8001/health
 echo   Press Ctrl+C to stop
 echo ============================================
 echo.
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8001
 pause

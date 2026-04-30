@@ -62,10 +62,10 @@ class ChatRequest(BaseModel):
             "V = IR"
         ]
     )
-    mode: Literal["teach", "quiz", "review"] = Field(
-        default="teach",
+    mode: Literal["student", "teacher", "rescue", "evaluator", "teach", "quiz", "review"] = Field(
+        default="student",
         description="Interaction mode",
-        examples=["teach", "quiz", "review"]
+        examples=["student", "teacher", "rescue", "evaluator"]
     )
 
     model_config = {

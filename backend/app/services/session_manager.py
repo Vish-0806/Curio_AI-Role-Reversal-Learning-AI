@@ -28,43 +28,47 @@ class SessionManager:
 
     def create_session(self, request: SessionCreateRequest) -> SessionState:
         """Create a new teaching session"""
-        settings = get_settings()
-        now = utc_now()
+        try:
+            settings = get_settings()
+            now = utc_now()
 
-        session = SessionState(
-            session_id="",  # temporary
-            created_at=now,
-            expires_at=now + timedelta(minutes=settings.SESSION_TTL_MINUTES),
-            user_id=request.user_id,
-            topic=request.topic,
-            extras=request.metadata,
-            conversation=[],
-            last_evaluation=None,
-        )
+            session = SessionState(
+                session_id="",  # temporary
+                created_at=now,
+                expires_at=now + timedelta(minutes=settings.SESSION_TTL_MINUTES),
+                user_id=request.user_id,
+                topic=request.topic,
+                extras=request.metadata,
+                conversation=[],
+                last_evaluation=None,
+            )
 
-        session_dict = session.model_dump()
+            session_dict = session.model_dump()
 
-        # 🔥 STEP 1: INSERT INTO DB
-        result = sessions.insert_one(session_dict)
+            # 🔥 STEP 1: INSERT INTO DB
+            result = sessions.insert_one(session_dict)
 
-        # 🔥 STEP 2: GET GENERATED ID
-        mongo_id = str(result.inserted_id)
+            # 🔥 STEP 2: GET GENERATED ID
+            mongo_id = str(result.inserted_id)
 
-        # 🔥 STEP 3: UPDATE session_id FIELD IN DB
-        sessions.update_one(
-            {"_id": result.inserted_id},
-            {"$set": {"session_id": mongo_id}}
-        )
+            # 🔥 STEP 3: UPDATE session_id FIELD IN DB
+            sessions.update_one(
+                {"_id": result.inserted_id},
+                {"$set": {"session_id": mongo_id}}
+            )
 
-        # 🔥 STEP 4: UPDATE OBJECT
-        session.session_id = mongo_id
+            # 🔥 STEP 4: UPDATE OBJECT
+            session.session_id = mongo_id
 
-        logger.info(
-            "Session created",
-            extra={"session_id": mongo_id, "topic": request.topic},
-        )
+            logger.info(
+                "Session created",
+                extra={"session_id": mongo_id, "topic": request.topic},
+            )
 
-        return session
+            return session
+        except Exception as e:
+            logger.error(f"FATAL ERROR in create_session: {str(e)}", exc_info=True)
+            raise e
 
     @property
     def active_session_count(self) -> int:
@@ -175,6 +179,45 @@ class SessionManager:
         logger.info("Evaluation stored", extra={"session_id": session_id})
 
         return self.get_session(session_id)
+
+
+    def store_report(self, report_data: dict) -> str:
+        """Store a learning report in MongoDB"""
+        from app.database.mongodb import reports
+        
+        result = reports.insert_one(report_data)
+        report_id = str(result.inserted_id)
+        
+        # Update report with its own ID
+        reports.update_one(
+            {"_id": result.inserted_id},
+            {"$set": {"report_id": report_id}}
+        )
+        
+        logger.info("Report stored", extra={"report_id": report_id})
+        return report_id
+
+    def get_user_reports(self, user_id: str) -> list:
+        """Retrieve all reports for a specific user"""
+        from app.database.mongodb import reports
+        
+        cursor = reports.find({"user_id": user_id}).sort("generated_at", -1)
+        results = []
+        for doc in cursor:
+            doc["_id"] = str(doc["_id"])
+            results.append(doc)
+        return results
+
+    def get_all_reports(self, limit: int = 20) -> list:
+        """Retrieve latest reports (for dashboard)"""
+        from app.database.mongodb import reports
+        
+        cursor = reports.find({}).sort("generated_at", -1).limit(limit)
+        results = []
+        for doc in cursor:
+            doc["_id"] = str(doc["_id"])
+            results.append(doc)
+        return results
 
 
 # Singleton instance

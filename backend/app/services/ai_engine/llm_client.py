@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import Optional, Dict, Any
 
-ROOT_DIR = Path(__file__).resolve().parents[2]
+ROOT_DIR = Path(__file__).resolve().parents[3]
 load_dotenv(ROOT_DIR / ".env")
 
 
@@ -33,13 +33,12 @@ def call_llm(prompt: str) -> str:
     try:
         client = _get_client()
         message = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
+            model=os.getenv("AI_MODEL", "llama-3.1-8b-instant"),
             messages=[{"role": "user", "content": prompt}],
         )
         return message.choices[0].message.content
     except Exception as exc:
-        if __name__ == "__main__":
-            print("DEBUG:", repr(exc))
+        print(f"ERROR in call_llm: {str(exc)}")
         return "Error generating response"
 
 
@@ -66,7 +65,7 @@ def call_llm_structured(
         messages = [{"role": "user", "content": prompt}]
         
         create_params = {
-            "model": "llama-3.1-8b-instant",
+            "model": os.getenv("AI_MODEL", "llama-3.1-8b-instant"),
             "messages": messages,
             "max_tokens": max_tokens,
         }
@@ -88,8 +87,7 @@ def call_llm_structured(
         return response_text
         
     except Exception as exc:
-        if __name__ == "__main__":
-            print("DEBUG:", repr(exc))
+        print(f"ERROR in call_llm: {str(exc)}")
         return "Error generating response"
 
 
@@ -112,7 +110,7 @@ def call_llm_with_system_prompt(
     try:
         client = _get_client()
         message = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
+            model=os.getenv("AI_MODEL", "llama-3.1-8b-instant"),
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
@@ -121,8 +119,7 @@ def call_llm_with_system_prompt(
         )
         return message.choices[0].message.content
     except Exception as exc:
-        if __name__ == "__main__":
-            print("DEBUG:", repr(exc))
+        print(f"ERROR in call_llm: {str(exc)}")
         return "Error generating response"
 
 

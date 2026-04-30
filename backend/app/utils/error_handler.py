@@ -19,6 +19,7 @@ from typing import Any, Optional
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
+from app.utils.helpers import utc_now
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -135,6 +136,13 @@ async def curio_exception_handler(request: Request, exc: CurioBaseError) -> JSON
 
 async def generic_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Catch-all for unhandled exceptions."""
+    import traceback
+    with open("error_log.txt", "a") as f:
+        f.write(f"\n--- {utc_now()} ---\n")
+        f.write(f"Error: {str(exc)}\n")
+        f.write(traceback.format_exc())
+        f.write("-" * 20 + "\n")
+        
     request_id = request.headers.get("X-Request-ID") or getattr(request.state, "request_id", None)
     return _build_error_response(
         status_code=500,

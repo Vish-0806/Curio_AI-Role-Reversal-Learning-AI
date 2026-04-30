@@ -44,6 +44,7 @@ def generate_report(
     report = {
         "report_id": f"report_{session_state.session_id}_{int(datetime.now().timestamp())}",
         "session_id": session_state.session_id,
+        "user_id": session_state.user_id,
         "topic": topic,
         "generated_at": datetime.now().isoformat(),
         
@@ -141,10 +142,16 @@ def _build_comprehensive_summary(
     return summary
 
 
-def _build_gap_analysis_report(evaluation: Dict[str, Any], topic: str) -> Dict[str, Any]:
+def _build_gap_analysis_report(evaluation: Any, topic: str) -> Dict[str, Any]:
     """Build structured gap analysis report."""
     
-    gaps = evaluation.get("gaps", [])
+    # Handle both dict and EvaluationResult object
+    if hasattr(evaluation, "model_dump"):
+        eval_dict = evaluation.model_dump()
+    else:
+        eval_dict = evaluation
+
+    gaps = eval_dict.get("gaps", [])
     
     gap_report = {
         "total_gaps_identified": len(gaps),
@@ -156,20 +163,29 @@ def _build_gap_analysis_report(evaluation: Dict[str, Any], topic: str) -> Dict[s
         "detailed_gaps": [],
     }
     
-    for gap in gaps:
-        priority = gap.get("priority", "medium")
-        
+    for gap_text in gaps:
+        # If gap is already a string (new format)
+        if isinstance(gap_text, str):
+            priority = "medium"
+            area = gap_text.split(":")[0] if ":" in gap_text else gap_text
+            issue = gap_text
+        else:
+            # Handle old dict format just in case
+            priority = gap_text.get("priority", "medium")
+            area = gap_text.get("area", "Unknown")
+            issue = gap_text.get("issue", "")
+            
         # Categorize by priority
         if priority in gap_report["gaps_by_priority"]:
-            gap_report["gaps_by_priority"][priority].append(gap.get("area", "Unknown"))
+            gap_report["gaps_by_priority"][priority].append(area)
         
         # Add detailed gap item
         gap_item = {
-            "area": gap.get("area", "Unknown"),
-            "issue": gap.get("issue", ""),
+            "area": area,
+            "issue": issue,
             "priority": priority,
-            "why_it_matters": _explain_gap_importance(gap.get("area", "")),
-            "suggested_focus": _suggest_gap_remediation(gap.get("area", ""), topic),
+            "why_it_matters": _explain_gap_importance(area),
+            "suggested_focus": _suggest_gap_remediation(area, topic),
         }
         gap_report["detailed_gaps"].append(gap_item)
     
@@ -315,7 +331,12 @@ def generate_quick_feedback(evaluation: Dict[str, Any]) -> str:
     ]
     
     if gaps:
-        gap_areas = [g.get("area", "Unknown") for g in gaps[:2]]
+        gap_areas = []
+        for g in gaps[:2]:
+            if isinstance(g, str):
+                gap_areas.append(g.split(":")[0] if ":" in g else g)
+            else:
+                gap_areas.append(g.get("area", "Unknown"))
         feedback_parts.append(f"Focus areas: {', '.join(gap_areas)}")
     
     strengths = evaluation.get("strengths", [])

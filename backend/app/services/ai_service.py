@@ -101,21 +101,21 @@ def evaluate_user_response(
 def generate_session_evaluation(session: SessionState) -> Dict[str, Any]:
     """
     Generate comprehensive evaluation for session completion.
-    
-    Args:
-        session: Completed SessionState
-        
-    Returns:
-        Full evaluation report
     """
+    from app.services.session_manager import session_manager
     
     try:
         evaluation = evaluator.evaluate_session(session)
         
+        # Store report in MongoDB
+        report_id = session_manager.store_report(evaluation)
+        evaluation["report_id"] = report_id
+        
         logger.info(
-            "Session evaluation completed",
+            "Session evaluation completed and stored",
             extra={
                 "session_id": session.session_id,
+                "report_id": report_id,
                 "understanding_score": evaluation.get("overall_understanding_score"),
             }
         )

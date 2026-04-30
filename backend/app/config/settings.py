@@ -7,6 +7,7 @@ Use get_settings() to access the cached singleton.
 
 from functools import lru_cache
 from typing import List, Optional
+from pathlib import Path
 
 from pydantic_settings import BaseSettings
 from pydantic import Field
@@ -50,9 +51,9 @@ class Settings(BaseSettings):
 
     # ── Server / CORS ────────────────────────────────────────────
     HOST: str = Field(default="0.0.0.0", description="Server bind host")
-    PORT: int = Field(default=8000, description="Server bind port")
+    PORT: int = Field(default=8001, description="Server bind port")
     CORS_ORIGINS: List[str] = Field(
-        default=["http://localhost:3000", "http://localhost:5173", "http://localhost:8000"],
+        default=["http://localhost:3000", "http://localhost:3001", "http://localhost:5173", "http://localhost:8000", "http://127.0.0.1:3001"],
         description="Allowed CORS origins",
     )
 
@@ -74,7 +75,7 @@ class Settings(BaseSettings):
     )
 
     model_config = {
-        "env_file": ".env",
+        "env_file": str(Path(__file__).resolve().parent.parent.parent / ".env"),
         "env_file_encoding": "utf-8",
         "case_sensitive": True,
         "extra": "ignore",

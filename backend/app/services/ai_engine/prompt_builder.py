@@ -93,46 +93,40 @@ def build_student_mode_prompt(
 def build_teacher_mode_prompt(
     user_confusion: str,
     topic: str,
-    previous_explanations: Optional[List[str]] = None,
+    previous_explanations: List[str],
+    last_ai_question: Optional[str] = None
 ) -> str:
     """
     Build a prompt for TEACHER MODE.
     AI switches to teacher role to clarify when user is stuck.
-    
-    Args:
-        user_confusion: What the user is confused about
-        topic: The topic being taught
-        previous_explanations: Earlier user explanations for context
-        
-    Returns:
-        System prompt for teacher mode behavior
     """
     
     system_instruction = (
         f"You are a patient TEACHER helping clarify: {topic}\n\n"
         f"The user is confused or stuck. Your job is to:\n"
-        f"- Provide a MINIMAL, CLEAR explanation\n"
-        f"- Use analogies or examples only if needed\n"
-        f"- Help rebuild understanding without overwhelming\n"
-        f"- Guide toward independent thinking\n"
-        f"- Then return control to the user\n\n"
+        f"1. LOOK at the 'Last Question Asked' below.\n"
+        f"2. EXPLAIN ONLY that specific part clearly and simply.\n"
+        f"3. Help the user bridge the gap between what they said and the correct concept.\n"
+        f"4. End by inviting them to try explaining that specific part again.\n\n"
         f"IMPORTANT RULES:\n"
-        f"- Keep explanation SHORT and FOCUSED\n"
-        f"- Don't lecture or over-explain\n"
-        f"- Use the user's own language where possible\n"
-        f"- Clarify misconceptions gently\n"
-        f"- End by encouraging the user to explain again\n"
+        f"- DO NOT explain the entire topic or session.\n"
+        f"- DO NOT provide a general lecture.\n"
+        f"- Focus ONLY on the immediate confusion point.\n"
+        f"- Keep it SHORT (max 3-4 sentences).\n"
     )
     
     context = ""
+    if last_ai_question:
+        context += f"\nLAST QUESTION ASKED (This is where they got stuck): {last_ai_question}\n"
+    
     if previous_explanations:
-        context = f"\nUser's earlier explanation: {' '.join(previous_explanations[:2])}\n"
+        context += f"User's earlier attempt: {' '.join(previous_explanations[-1:])}\n"
     
     prompt = (
         f"{system_instruction}"
-        f"{context}"
-        f"User's confusion point: {user_confusion}\n\n"
-        f"Provide a brief, helpful clarification:"
+        f"{context}\n"
+        f"User's current message: {user_confusion}\n\n"
+        f"Targeted clarification:"
     )
     
     return prompt
@@ -190,16 +184,8 @@ def build_evaluator_mode_prompt(
     """
     Build a prompt for EVALUATOR MODE.
     AI analyzes the full session and generates gap report.
-    
-    Args:
-        conversation_history: Full conversation history
-        topic: The topic being taught
-        
-    Returns:
-        System prompt for evaluation
     """
     
-    # Compile conversation for analysis
     conv_text = ""
     for turn in conversation_history:
         role = "User" if turn.get("role") == "user" else "AI"
@@ -208,18 +194,26 @@ def build_evaluator_mode_prompt(
     system_instruction = (
         f"You are a COGNITIVE LEARNING EVALUATOR analyzing a teaching session on: {topic}\n\n"
         f"ANALYSIS TASK:\n"
-        f"1. Identify STRENGTHS in the user's understanding\n"
-        f"2. Identify GAPS and misconceptions\n"
-        f"3. Note STRUGGLE POINTS and weak reasoning\n"
-        f"4. Assess MASTERY LEVEL (0-100)\n"
-        f"5. Recommend KEY AREAS for revisiting\n\n"
-        f"Be specific, constructive, and actionable.\n"
+        f"1. STRENGTHS: What concepts did the user explain clearly and accurately?\n"
+        f"2. GAPS: What key concepts were missing or incomplete in their explanation?\n"
+        f"3. WRONG ASSUMPTIONS: Did the user state anything factually incorrect or logically flawed?\n"
+        f"4. STRUGGLE MOMENTS: Where did the user explicitly say 'I don't know' or show significant confusion?\n"
+        f"5. REVISIT PLAN: What specific 2-3 concepts should they review next?\n"
+        f"6. MASTERY SCORE: A score from 0-100 based on their performance.\n\n"
+        f"FORMAT YOUR RESPONSE AS A JSON OBJECT WITH THESE KEYS:\n"
+        f"- strengths (list of strings)\n"
+        f"- gaps (list of strings)\n"
+        f"- assumptions (list of strings)\n"
+        f"- struggle_moments (list of strings)\n"
+        f"- recommendations (list of strings)\n"
+        f"- mastery_score (integer 0-100)\n"
+        f"- overall_summary (string)\n"
     )
     
     prompt = (
         f"{system_instruction}\n"
         f"FULL CONVERSATION:\n{conv_text}\n\n"
-        f"Provide a detailed evaluation of the user's understanding."
+        f"Provide the detailed JSON evaluation now:"
     )
     
     return prompt

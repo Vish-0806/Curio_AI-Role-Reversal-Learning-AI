@@ -4,6 +4,7 @@ Curio AI — Report Route.
 POST /report — Generate a learning gap report for a session.
 """
 
+from typing import Dict, Any
 from fastapi import APIRouter, Request
 
 from app.models.chat_model import ResponseEnvelope
@@ -13,11 +14,17 @@ from app.services.report_generator import generate_report
 from app.services.session_manager import session_manager
 from app.utils.error_handler import CurioValidationError
 from app.utils.helpers import generate_id
+from fastapi.encoders import jsonable_encoder
 
-router = APIRouter(tags=["Report"])
+router = APIRouter(prefix="/report", tags=["Report"])
 
 
-@router.post("/report", response_model=ResponseEnvelope[ReportResponse])
+@router.get("/test")
+async def test_report_api():
+    return {"message": "ok"}
+
+
+@router.post("", response_model=ResponseEnvelope[ReportResponse])
 async def report(body: ReportRequest, request: Request):
     """
     Generate a learning report for the session.
@@ -56,3 +63,43 @@ async def report(body: ReportRequest, request: Request):
         ),
         request_id=request_id,
     )
+
+
+@router.get("/list/{user_id}", response_model=ResponseEnvelope[Any])
+async def list_user_reports(user_id: str, request: Request):
+    """List all reports for a user."""
+    request_id = request.headers.get("X-Request-ID") or generate_id("req")
+    try:
+        reports = session_manager.get_user_reports(user_id) or []
+        from app.utils.logger import get_logger
+        logger = get_logger(__name__)
+        logger.info(f"Retrieved {len(reports)} reports for user {user_id}")
+        
+        return ResponseEnvelope(
+            success=True,
+            data={"reports": jsonable_encoder(reports)},
+            request_id=request_id,
+        )
+    except Exception as e:
+        from app.utils.logger import get_logger
+        logger = get_logger(__name__)
+        logger.error(f"Error listing reports for user {user_id}: {str(e)}")
+        raise e
+
+
+@router.get("/latest", response_model=ResponseEnvelope[Any])
+async def list_latest_reports(request: Request, limit: int = 10):
+    """List latest reports for dashboard."""
+    request_id = request.headers.get("X-Request-ID") or generate_id("req")
+    try:
+        reports = session_manager.get_all_reports(limit) or []
+        return ResponseEnvelope(
+            success=True,
+            data={"reports": jsonable_encoder(reports)},
+            request_id=request_id,
+        )
+    except Exception as e:
+        from app.utils.logger import get_logger
+        logger = get_logger(__name__)
+        logger.error(f"Error listing latest reports: {str(e)}")
+        raise e
