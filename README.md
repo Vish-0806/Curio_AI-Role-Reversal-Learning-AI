@@ -1,4 +1,4 @@
-# 🎭🧠Curio AI — Role-Reversal Learning Platform
+# 🎭Curio AI — Role-Reversal Learning Platform
 
 **Learn by teaching.** Curio AI flips the script: instead of an AI teaching you, *you* teach the AI. Curio acts as a curious student — asking questions, challenging your logic, catching mistakes, and evaluating how well you understand the topic.
 
