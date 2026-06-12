@@ -1,4 +1,4 @@
-# 🎭 Curio AI — Learn by Teaching
+# 🎭 Curio AI — A Role Reversal AI Engine
 
 > **The AI that learns from you.**
 >
