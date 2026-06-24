@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🎭 Curio AI
+# 🎭 Curio AI - Role Reversal Learning AI Engine
 
 ### *Learn by Teaching. Master by Explaining.*
 
